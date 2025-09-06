@@ -50,11 +50,10 @@ class SICEDataset(Dataset):
     def __getitem__(self, idx):
         high_image_path = self.high_image_paths[idx]
         low_image_path = self.low_image_paths[idx]
-
         high_image = Image.open(high_image_path).convert('RGB')
         low_image = Image.open(low_image_path).convert('RGB')
 
-        if self.transform:
+        if self.transform is not None:
             high_image = self.transform(high_image)
             low_image = self.transform(low_image)
 
