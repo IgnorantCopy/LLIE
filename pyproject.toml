@@ -1,6 +1,6 @@
 [project]
 authors = [{name = "IgnorantCopy", email = "231880174@smail.nju.edu.cn"}]
-dependencies = []
+dependencies = ["bm3d>=4.0.3,<5"]
 name = "LLIE"
 requires-python = ">= 3.11"
 version = "0.1.0"
@@ -39,3 +39,7 @@ pixi-pycharm = ">=0.0.8,<0.0.9"
 loguru = ">=0.7.3,<0.8"
 opencv = ">=4.11.0,<5"
 plotly = ">=6.3.0,<7"
+lightning = ">=2.5.5,<3"
+tensorboard = ">=2.20.0,<3"
+scipy = ">=1.16.1,<2"
+einops = ">=0.8.1,<0.9"

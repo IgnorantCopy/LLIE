@@ -210,3 +210,4 @@ __marimo__/
 !.pixi/config.toml
 
 src/test/RetinexNet/
+src/llie/logs/

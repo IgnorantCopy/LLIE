@@ -1,0 +1,34 @@
+model:
+  name: RetinexNet
+  in_channels: 4
+  hidden_dim: 64
+  kernel_size: 3
+  num_layers: 5
+  decom_epochs: 100
+  relight_epochs: 100
+
+
+train:
+  epochs: 200
+  lr: 0.001
+  optimizer:
+    name: Adam
+    weight_decay: 0.0005
+  scheduler:
+    name: ReduceLROnPlateau
+    factor: 0.5
+    patience: 10
+    min_lr: 0.000001
+  log_dir: ./logs/retinex_net/sice
+
+
+data:
+  name: SICE
+  root: /home/nju-student/mkh/datasets/LLIE/SICE
+  batch_size: 4
+  num_workers: 4
+  pin_memory: True
+  height: 300
+  width: 450
+  val_ratio: 0.2
+  seed: 42

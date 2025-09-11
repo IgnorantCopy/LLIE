@@ -5,6 +5,8 @@ from torch.utils.data import Dataset
 from PIL import Image
 from typing import Tuple, List
 
+from src.llie.data.utils import split_train_val, DataModuleFromConfig
+
 
 class SICEDataset(Dataset):
     def __init__(self, root_dir: str, split: str, transform=None):
@@ -53,8 +55,23 @@ class SICEDataset(Dataset):
         high_image = Image.open(high_image_path).convert('RGB')
         low_image = Image.open(low_image_path).convert('RGB')
 
+        if high_image.size[0] > high_image.size[1]:
+            high_image = high_image.transpose(Image.Transpose.ROTATE_90)
+            low_image = low_image.transpose(Image.Transpose.ROTATE_90)
+
         if self.transform is not None:
             high_image = self.transform(high_image)
             low_image = self.transform(low_image)
 
         return high_image, low_image
+
+
+class SICEDataModule(DataModuleFromConfig):
+    def __init__(self, data_config):
+        super().__init__(data_config)
+
+    def setup(self, stage: str):
+        train_dataset = SICEDataset(root_dir=self.root, split="train", transform=self.train_transform)
+        self.train_dataset, self.val_dataset = split_train_val(self.data_config, train_dataset)
+        self.val_dataset.transform = self.test_transform
+        self.test_dataset = SICEDataset(root_dir=self.root, split="eval", transform=self.test_transform)

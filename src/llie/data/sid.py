@@ -5,6 +5,8 @@ from torch.utils.data import Dataset
 from PIL import Image
 from typing import Tuple, List
 
+from src.llie.data.utils import DataModuleFromConfig
+
 
 class SIDDataset(Dataset):
     def __init__(self, root_dir: str, split: str, transform=None):
@@ -46,3 +48,13 @@ class SIDDataset(Dataset):
             low_image = self.transform(low_image)
 
         return high_image, low_image
+
+
+class SIDDataModule(DataModuleFromConfig):
+    def __init__(self, data_config):
+        super().__init__(data_config)
+
+    def setup(self, stage: str):
+        self.train_dataset = SIDDataset(root_dir=self.root, split='train', transform=self.train_transform)
+        self.val_dataset = SIDDataset(root_dir=self.root, split='eval', transform=self.test_transform)
+        self.test_dataset = SIDDataset(root_dir=self.root, split='test', transform=self.test_transform)

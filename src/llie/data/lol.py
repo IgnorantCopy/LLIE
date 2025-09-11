@@ -4,6 +4,8 @@ from torch.utils.data import Dataset
 from PIL import Image
 from typing import Tuple, List
 
+from src.llie.data.utils import split_train_val, DataModuleFromConfig
+
 
 _metadata = {
     "LOLv1": {
@@ -36,7 +38,7 @@ class LOLDataset(Dataset):
         self.data_root = os.path.join(root_dir, self.metadata[split])
         self.split = split
         self.transform = transform
-        self.low_image_paths, self.high_image_paths = self._load_data()
+        self.high_image_paths, self.low_image_paths = self._load_data()
 
     def _load_data(self) -> Tuple[List[str], List[str]]:
         high_image_paths = sorted(glob.glob(os.path.join(self.data_root, self.metadata['high'], "*.png")))
@@ -63,3 +65,14 @@ class LOLDataset(Dataset):
             low_image = self.transform(low_image)
 
         return high_image, low_image
+
+
+class LOLDataModule(DataModuleFromConfig):
+    def __init__(self, data_config):
+        super().__init__(data_config)
+
+    def setup(self, stage: str):
+        train_dataset = LOLDataset(root_dir=self.root, split="train", transform=self.train_transform)
+        self.train_dataset, self.val_dataset = split_train_val(self.data_config, train_dataset)
+        self.val_dataset.transform = self.test_transform
+        self.test_dataset = LOLDataset(root_dir=self.root, split="test", transform=self.test_transform)

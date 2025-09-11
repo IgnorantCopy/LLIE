@@ -5,6 +5,8 @@ from torch.utils.data import Dataset
 from PIL import Image
 from typing import Tuple, List
 
+from src.llie.data.utils import split_train_val, DataModuleFromConfig
+
 
 class LOLBlurDataset(Dataset):
     def __init__(self, root_dir: str, split: str, transform=None):
@@ -48,3 +50,14 @@ class LOLBlurDataset(Dataset):
             low_image = self.transform(low_image)
 
         return high_image, low_image
+
+
+class LOLBlurDataModule(DataModuleFromConfig):
+    def __init__(self, data_config):
+        super().__init__(data_config)
+
+    def setup(self, stage: str):
+        train_dataset = LOLBlurDataset(root_dir=self.root, split="train", transform=self.train_transform)
+        self.train_dataset, self.val_dataset = split_train_val(self.data_config, train_dataset)
+        self.val_dataset.transform = self.test_transform
+        self.test_dataset = LOLBlurDataset(root_dir=self.root, split="test", transform=self.test_transform)
