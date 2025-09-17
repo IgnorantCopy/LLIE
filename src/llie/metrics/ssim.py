@@ -20,9 +20,7 @@ def create_window(window_size, channel):
     return Variable(window)
 
 
-def _ssim(image1, image2, window, window_size, channel, size_average=True, max_val=1.0):
-    image1 = torch.clip(image1, 0, max_val)
-    image2 = torch.clip(image2, 0, max_val)
+def _ssim(image1, image2, window, window_size, channel, size_average=True):
     mu1 = F.conv2d(image1, window, padding=window_size // 2, groups=channel)
     mu2 = F.conv2d(image2, window, padding=window_size // 2, groups=channel)
 
@@ -46,11 +44,10 @@ def _ssim(image1, image2, window, window_size, channel, size_average=True, max_v
 
 
 class SSIM(nn.Module):
-    def __init__(self, window_size=11, size_average=True, max_val=1.0):
+    def __init__(self, window_size=11, size_average=True):
         super().__init__()
         self.window_size = window_size
         self.size_average = size_average
-        self.max_val = max_val
         self.channel = 1
         self.window = create_window(window_size, self.channel)
 
@@ -69,10 +66,10 @@ class SSIM(nn.Module):
             self.window = window
             self.channel = channel
 
-        return _ssim(image1, image2, window, self.window_size, channel, self.size_average, self.max_val)
+        return _ssim(image1, image2, window, self.window_size, channel, self.size_average)
 
 
-def ssim(image1, image2, window_size=11, size_average=True, max_val=1.0):
+def ssim(image1, image2, window_size=11, size_average=True):
     _, channel, _, _ = image1.shape
     window = create_window(window_size, channel)
 
@@ -80,4 +77,4 @@ def ssim(image1, image2, window_size=11, size_average=True, max_val=1.0):
         window = window.cuda(image1.get_device())
     window = window.type_as(image1)
 
-    return _ssim(image1, image2, window, window_size, channel, size_average, max_val)
+    return _ssim(image1, image2, window, window_size, channel, size_average)

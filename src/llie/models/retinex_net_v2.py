@@ -242,23 +242,16 @@ class RetinexNetV2(pl.LightningModule):
         low_l = torch.clip(self.low_y[-1], 0.05 / 1.05, 1)
         self.low_l = torch.cat([low_l, low_l, low_l], dim=1)
 
-        self.low_max = self.low_max.cpu()
-        self.low_y = self.low_y.cpu()
-
         if high is not None:
             high = (high + 0.05) / 1.05
             self.high_max = torch.max(high, dim=1, keepdim=True)[0].detach()
             self.high_y = self.decom_net(self.high_max)
             high_l = torch.clip(self.high_y[-1], 0.05 / 1.05, 1)
-            self.high_l = torch.cat([high_l, high_l, high_l], dim=1).cpu()
-
-            self.high_max = self.high_max.cpu()
-            self.high_y = self.high_y.cpu()
+            self.high_l = torch.cat([high_l, high_l, high_l], dim=1)
 
         low_r = low / low_l
-        self.low_l = self.low_l.cpu()
-        self.high_l_pred = self.enhance_net(low).cpu()
-        self.high_r_pred = self.restore_net(low_r.detach()).cpu()
+        self.high_l_pred = self.enhance_net(low)
+        self.high_r_pred = self.restore_net(low_r.detach())
         self.high_pred = self.high_l_pred.detach() * self.high_r_pred
 
     def _sparse_loss(self, y: List[torch.Tensor], eps_list: List[float]):
@@ -296,7 +289,6 @@ class RetinexNetV2(pl.LightningModule):
         return loss
 
     def _compute_loss(self, high: torch.Tensor):
-        high = high.detach().cpu()
         loss_IE = -self.ssim(self.high_l_pred, self.high_l.detach())
         loss_FF = -self.ssim(self.high_pred, high.detach())
         loss_RF = -self.ssim(self.high_r_pred, (high / self.high_l_pred).detach())
@@ -316,8 +308,10 @@ class RetinexNetV2(pl.LightningModule):
 
     def _compute_metrics(self, high: torch.Tensor):
         pred = torch.clip(self.high_pred, 0, 1.0)
-        target = torch.clip(high.detach().cpu(), 0, 1.0)
+        target = torch.clip(high.detach(), 0, 1.0)
         self.ssim_val = self._ssim(pred, target)
+        if torch.isnan(self.ssim_val):
+            import pdb; pdb.set_trace()
         self.psnr_val = self._psnr(pred, target)
         self.uqi_val = self._uqi(pred, target)
 
