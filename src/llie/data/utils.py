@@ -5,8 +5,8 @@ import lightning as pl
 
 
 def split_train_val(data_config, dataset):
-    val_ratio = getattr(data_config, "val_ratio", 0.2)
-    seed = getattr(data_config, "seed", 42)
+    val_ratio = data_config.get("val_ratio", 0.2)
+    seed = data_config.get("seed", 42)
     train_size = int(len(dataset) * (1 - val_ratio))
     val_size = len(dataset) - train_size
     seed = torch.Generator().manual_seed(seed)
@@ -21,8 +21,8 @@ class DataModuleFromConfig(pl.LightningDataModule):
         self.batch_size = data_config["batch_size"]
         self.image_height = data_config["height"]
         self.image_width = data_config["width"]
-        self.num_workers = getattr(data_config, "num_workers", 4)
-        self.pin_memory = getattr(data_config, "pin_memory", True)
+        self.num_workers = data_config.get("num_workers", 4)
+        self.pin_memory = data_config.get("pin_memory", True)
 
         self.train_dataset = None
         self.val_dataset = None

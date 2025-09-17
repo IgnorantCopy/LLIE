@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -5,7 +7,7 @@ import lightning as pl
 import numpy as np
 from bm3d import bm3d
 from einops import rearrange
-from loguru import Logger
+import loguru
 from typing import Tuple, Optional
 
 from src.llie.utils.config import get_optimizer, get_scheduler
@@ -89,34 +91,32 @@ class RelightNet(nn.Module):
 
 
 class RetinexNet(pl.LightningModule):
-    def __init__(self, config, logger: Logger):
+    def __init__(self, config, logger: "loguru.Logger"):
         super().__init__()
 
         self.config = config
         self.extra_logger = logger
         model_config = config["model"]
-        self.in_channels = getattr(model_config, "in_channels", 4)
-        self.hidden_dim = getattr(model_config, "hidden_dim", 64)
-        self.kernel_size = getattr(model_config, "kernel_size", 3)
-        self.num_layers = getattr(model_config, "num_layers", 5)
-        self.decom_epochs = getattr(model_config, "decom_epochs", 100)
-        self.relight_epochs = getattr(model_config, "relight_epochs", 100)
+        self.in_channels = model_config.get("in_channels", 3)
+        self.hidden_dim = model_config.get("hidden_dim", 64)
+        self.kernel_size = model_config.get("kernel_size", 3)
+        self.num_layers = model_config.get("num_layers", 5)
+        self.decom_epochs = model_config.get("decom_epochs", 100)
+        self.relight_epochs = model_config.get("relight_epochs", 100)
 
         self.decom_net = DecomNet(self.in_channels, self.num_layers, self.hidden_dim, self.kernel_size)
         self.relight_net = RelightNet(self.in_channels, self.hidden_dim, self.kernel_size)
 
         self.automatic_optimization = False
-        self.decom_epochs = self.decom_epochs
-        self.relight_epochs = self.relight_epochs
 
-    def forward(self, low: torch.Tensor, high: Optional[torch.Tensor] = None):
+    def forward(self, low: torch.Tensor, high: Optional[torch.Tensor] = None, denoise: bool = False):
         self.R_low, I_low = self.decom_net(low)
         self.I_low = torch.cat([I_low, I_low, I_low], dim=1)
 
         I_delta = self.relight_net(I_low, self.R_low)
         self.I_delta = torch.cat([I_delta, I_delta, I_delta], dim=1)
 
-        if not self.training:
+        if denoise:
             self.R_low = self._denoise(self.R_low)
         self.S = self.R_low * self.I_delta
 
@@ -264,7 +264,28 @@ class RetinexNet(pl.LightningModule):
         self.extra_logger.info("Training finished.")
 
     def test_step(self, batch, batch_idx):
-        return self.validation_step(batch, batch_idx)
+        high, low = batch
+        self.forward(low, high, denoise=True)
+        self._compute_loss(low, high)
+
+        if self.current_epoch < self.decom_epochs:
+            self.log("test/decom_loss", self.decom_loss, on_step=False, on_epoch=True, prog_bar=True)
+        else:
+            self.log("test/relight_loss", self.relight_loss, on_step=False, on_epoch=True, prog_bar=True)
+        # log images
+        if batch_idx == 0:
+            R_low, I_low = self.R_low[0].detach().cpu(), self.I_low[0].detach().cpu()
+            R_high, I_high = self.R_high[0].detach().cpu(), self.I_high[0].detach().cpu()
+            recon_low, recon_high = R_low * I_low, R_high * I_high
+            low, high = low[0].detach().cpu(), high[0].detach().cpu()
+
+            low_image = torch.cat([low, R_low, I_low, recon_low], dim=1)
+            high_image = torch.cat([high, R_high, I_high, recon_high], dim=1)
+            image = torch.cat([low_image, high_image], dim=2)
+            image = torch.clip(image * 255, 0, 255).to(torch.uint8)
+            out = torch.clip(self.S[0].detach().cpu() * 255, 0, 255).to(torch.uint8)
+            self.logger.experiment.add_image("test/image", image)
+            self.logger.experiment.add_image("test/out", out)
 
     def on_test_start(self):
         self.extra_logger.info("Start testing.")
@@ -273,5 +294,5 @@ class RetinexNet(pl.LightningModule):
         self.extra_logger.info("Testing finished.")
 
     def predict_step(self, low: torch.Tensor):
-        self.forward(low)
+        self.forward(low, denoise=True)
         return torch.clip(self.S * 255, 0, 255).to(torch.uint8)

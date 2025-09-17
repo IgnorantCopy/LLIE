@@ -30,21 +30,21 @@ class SICEDataset(Dataset):
 
         high_image_paths = sorted(glob.glob(os.path.join(high_image_dir, "*.JPG")))
         low_image_paths = []
+        final_high_image_paths = []
         for high_image_path in high_image_paths:
             image_name = os.path.basename(high_image_path)
             if self.split == 'train':
                 low_images = glob.glob(os.path.join(low_image_dir, image_name.split('.')[0], "*.JPG"))
                 low_image_path = random.choice(low_images)
             else:
-                low_image_path = os.path.join(low_image_dir, image_name)
+                low_image_path = os.path.join(low_image_dir, image_name.lower())
             if os.path.exists(low_image_path):
                 low_image_paths.append(low_image_path)
-            else:
-                high_image_paths.remove(high_image_path)
+                final_high_image_paths.append(high_image_path)
 
-        assert len(high_image_paths) == len(low_image_paths)
+        assert len(final_high_image_paths) == len(low_image_paths), f"{len(final_high_image_paths)} != {len(low_image_paths)}"
 
-        return high_image_paths, low_image_paths
+        return final_high_image_paths, low_image_paths
 
     def __len__(self):
         return len(self.high_image_paths)

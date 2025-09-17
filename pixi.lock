@@ -3949,7 +3949,7 @@ packages:
 - pypi: ./
   name: llie
   version: 0.1.0
-  sha256: 5a642d7c7d9d9706a27fd5a1aaf3542153f291f3a10558be74ca3c5351056b0c
+  sha256: 3af5a48bf4a05b27907314b54e27b45e7206662e5876afd113a53dbffd34902d
   requires_dist:
   - bm3d>=4.0.3,<5
   requires_python: '>=3.11'

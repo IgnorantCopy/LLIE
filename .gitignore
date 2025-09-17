@@ -210,4 +210,5 @@ __marimo__/
 !.pixi/config.toml
 
 src/test/RetinexNet/
+src/test/SGM-Low-Light/
 src/llie/logs/

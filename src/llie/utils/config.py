@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import yaml
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
 import lightning as pl
-from loguru import Logger
+import loguru
 
 
 def load_config(config_file):
@@ -17,13 +19,16 @@ def save_config(config, config_file):
         yaml.dump(config, f, default_flow_style=False, allow_unicode=True)
 
 
-def get_model(config, logger: Logger) -> pl.LightningModule:
+def get_model(config, logger: "loguru.Logger") -> pl.LightningModule:
     name = config["model"]["name"]
 
     logger.info(f"Loading model: {name}")
     if name == "RetinexNet":
         from src.llie.models.retinex_net import RetinexNet
         model = RetinexNet(config, logger)
+    elif name == "RetinexNetV2":
+        from src.llie.models.retinex_net_v2 import RetinexNetV2
+        model = RetinexNetV2(config, logger)
     else:
         logger.error(f"Invalid model name: {name}")
         raise ValueError(f"Invalid model name: {name}")
@@ -32,7 +37,7 @@ def get_model(config, logger: Logger) -> pl.LightningModule:
     return model
 
 
-def get_optimizer(train_config, model: nn.Module, logger: Logger) -> optim.Optimizer:
+def get_optimizer(train_config, model: nn.Module, logger: "loguru.Logger") -> optim.Optimizer:
     optimizer_config = train_config["optimizer"]
     optimizer_name = optimizer_config["name"]
     lr = train_config["lr"]
@@ -53,7 +58,7 @@ def get_optimizer(train_config, model: nn.Module, logger: Logger) -> optim.Optim
     return optimizer
 
 
-def get_scheduler(train_config, optimizer: optim.Optimizer, logger: Logger):
+def get_scheduler(train_config, optimizer: optim.Optimizer, logger: "loguru.Logger"):
     scheduler_config = train_config["scheduler"]
     scheduler_name = scheduler_config["name"]
 
@@ -71,7 +76,7 @@ def get_scheduler(train_config, optimizer: optim.Optimizer, logger: Logger):
     return scheduler
 
 
-def get_datamodule(data_config, logger: Logger):
+def get_datamodule(data_config, logger: "loguru.Logger"):
     name = data_config["name"]
 
     logger.info(f"Loading dataset: {name}")
@@ -84,6 +89,9 @@ def get_datamodule(data_config, logger: Logger):
     elif name == "SICE":
         from src.llie.data.sice import SICEDataModule
         data_module = SICEDataModule(data_config)
+    elif name == "SID":
+        from src.llie.data.sid import SIDDataModule
+        data_module = SIDDataModule(data_config)
     elif name == "Unpaired":
         from src.llie.data.unpaired import UnpairedDataModule
         data_module = UnpairedDataModule(data_config)

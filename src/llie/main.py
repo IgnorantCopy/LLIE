@@ -43,7 +43,6 @@ def main():
                          logger=logger, default_root_dir=log_dir)
     trainer.fit(model=model, datamodule=datamodule, ckpt_path=resume)
     trainer.test(model=model, datamodule=datamodule)
-    extra_logger.info("Testing finished")
 
 
 if __name__ == '__main__':

@@ -1,0 +1,50 @@
+model:
+  name: RetinexNetV2
+  decom_net:
+    depth: 4
+    in_channels: 1
+    mid_channels: 8
+  enhance_net:
+    in_channels: 3
+    mid_channels: 64
+    num_layers: 6
+    depth: 4
+    kernel_size: 3
+  restore_net:
+    in_channels: 3
+    mid_channels: 64
+    num_layers: 6
+    depth: 4
+    kernel_size: 3
+  lambda_IE: 100
+  lambda_RF: 100
+  lambda_FF: 10000
+  lambda_rect: 1.0
+  lambda_sparse: 0.00001
+  decom_epochs: 20
+
+
+train:
+  epochs: 300
+  lr: 0.0001
+  optimizer:
+    name: Adam
+    weight_decay: 0.0005
+  scheduler:
+    name: ReduceLROnPlateau
+    factor: 0.5
+    patience: 10
+    min_lr: 0.000001
+  log_dir: ./logs/retinex_net_v2/lolv2_real
+
+
+data:
+  name: LOLv2_Real
+  root: /home/nju-student/mkh/datasets/LLIE/LOLv2/Real_captured
+  batch_size: 1
+  num_workers: 4
+  pin_memory: True
+  height: 400
+  width: 600
+  val_ratio: 0.2
+  seed: 42

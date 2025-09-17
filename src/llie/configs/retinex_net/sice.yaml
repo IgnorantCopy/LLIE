@@ -4,12 +4,12 @@ model:
   hidden_dim: 64
   kernel_size: 3
   num_layers: 5
-  decom_epochs: 100
+  decom_epochs: 150
   relight_epochs: 100
 
 
 train:
-  epochs: 200
+  epochs: 250
   lr: 0.001
   optimizer:
     name: Adam
@@ -24,7 +24,7 @@ train:
 
 data:
   name: SICE
-  root: /home/nju-student/mkh/datasets/LLIE/SICE
+  root: /home/nju-student/mkh/datasets/LLIE/SICE/Dataset
   batch_size: 4
   num_workers: 4
   pin_memory: True
