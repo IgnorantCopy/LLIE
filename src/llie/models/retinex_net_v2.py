@@ -43,7 +43,7 @@ class SGMN(nn.Module):
             BasicBlock(in_channels, mid_channels)
             for _ in range(depth)
         ])
-        self._init_weights()
+        # self._init_weights()
 
     def _init_weights(self):
         for m in self.modules():
@@ -165,6 +165,14 @@ class MSRDN(nn.Module):
             nn.Conv2d(mid_channels // 2, in_channels, kernel_size, padding=keep_size_pad, stride=1)
         )
 
+        # self._init_weights()
+
+    def _init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.xavier_uniform_(m.weight)
+                m.bias.data.fill_(0)
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.in_conv(x)
         x1 = self.down1(x)
@@ -204,6 +212,7 @@ class RetinexNetV2(pl.LightningModule):
         self.lambda_FF = model_config.get('lambda_FF', 100)
         self.lambda_rect = model_config.get('lambda_rect', 0.01)
         self.lambda_sparse = model_config.get('lambda_sparse', 1e-7)
+        self.decom_epochs = model_config.get('decom_epochs', 30)
 
         self.decom_net = self._make_sgmn(self.decom_net_config)
         self.enhance_net = self._make_msrdn(self.enhance_net_config)
@@ -249,9 +258,9 @@ class RetinexNetV2(pl.LightningModule):
             high_l = torch.clip(self.high_y[-1], 0.05 / 1.05, 1)
             self.high_l = torch.cat([high_l, high_l, high_l], dim=1)
 
-        low_r = low / low_l
+        low_r = (low / self.low_l).detach()
         self.high_l_pred = self.enhance_net(low)
-        self.high_r_pred = self.restore_net(low_r.detach())
+        self.high_r_pred = self.restore_net(low_r)
         self.high_pred = self.high_l_pred.detach() * self.high_r_pred
 
     def _sparse_loss(self, y: List[torch.Tensor], eps_list: List[float]):
@@ -310,10 +319,11 @@ class RetinexNetV2(pl.LightningModule):
         pred = torch.clip(self.high_pred, 0, 1.0)
         target = torch.clip(high.detach(), 0, 1.0)
         self.ssim_val = self._ssim(pred, target)
-        if torch.isnan(self.ssim_val):
-            import pdb; pdb.set_trace()
         self.psnr_val = self._psnr(pred, target)
         self.uqi_val = self._uqi(pred, target)
+        if torch.isnan(self.ssim_val) or torch.isnan(self.psnr_val) or torch.isnan(self.uqi_val):
+            import pdb; pdb.set_trace()
+            print("nan detected")
 
     def configure_optimizers(self):
         train_config = self.config['train']
@@ -343,7 +353,8 @@ class RetinexNetV2(pl.LightningModule):
 
         self.manual_backward(self.total_loss)
 
-        decom_optimizer.step()
+        if self.current_epoch < self.decom_epochs:
+            decom_optimizer.step()
         enhance_optimizer.step()
         restore_optimizer.step()
 
@@ -398,11 +409,16 @@ class RetinexNetV2(pl.LightningModule):
 
     def on_validation_epoch_end(self):
         decom_scheduler, enhance_scheduler, restore_scheduler = self.lr_schedulers()
-        decom_scheduler.step(self.total_loss)
+        if self.current_epoch < self.decom_epochs:
+            decom_scheduler.step(self.total_loss)
         enhance_scheduler.step(self.total_loss)
         restore_scheduler.step(self.total_loss)
 
         self.log("lr", enhance_scheduler.get_last_lr()[0])
+
+        if self.current_epoch + 1 == self.decom_epochs:
+            self.extra_logger.info(f"DecomNet training finished.")
+            self.decom_net.freeze()
 
     def on_fit_start(self):
         self.extra_logger.info(f"Start training on {self.device}.")

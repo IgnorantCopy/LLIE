@@ -21,19 +21,19 @@ model:
   lambda_FF: 10000
   lambda_rect: 1.0
   lambda_sparse: 0.00001
-  decom_epochs: 20
+  decom_epochs: 30
 
 
 train:
-  epochs: 300
-  lr: 0.0001
+  epochs: 200
+  lr: 0.001
   optimizer:
     name: Adam
     weight_decay: 0.0005
   scheduler:
     name: ReduceLROnPlateau
     factor: 0.5
-    patience: 10
+    patience: 15
     min_lr: 0.000001
   log_dir: ./logs/retinex_net_v2/lolv2_real
 

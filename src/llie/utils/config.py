@@ -45,7 +45,9 @@ def get_optimizer(train_config, model: nn.Module, logger: "loguru.Logger") -> op
     logger.info(f"Loading optimizer: {optimizer_name}")
     if optimizer_name == "Adam":
         weight_decay = optimizer_config.get("weight_decay", 5e-4)
-        optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+        betas = optimizer_config.get("betas", (0.9, 0.999))
+
+        optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay, betas=betas)
     elif optimizer_name == "SGD":
         momentum = optimizer_config.get("momentum", 0.9)
         weight_decay = optimizer_config.get("weight_decay", 5e-4)

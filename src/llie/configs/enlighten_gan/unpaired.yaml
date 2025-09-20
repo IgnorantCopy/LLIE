@@ -1,27 +1,21 @@
 model:
-  name: RetinexNetV2
-  decom_net:
-    depth: 4
-    in_channels: 1
-    mid_channels: 8
-  enhance_net:
+  name: EnlightenGAN
+  generator:
+    in_channels: 4
+    base_channels: 32
+  discriminator:
     in_channels: 3
     mid_channels: 64
-    num_layers: 6
-    depth: 4
-    kernel_size: 3
-  restore_net:
+    num_layers: 5
+  patch_discriminator:
     in_channels: 3
     mid_channels: 64
-    num_layers: 6
-    depth: 4
-    kernel_size: 3
-  lambda_IE: 1
-  lambda_RF: 1
-  lambda_FF: 100
-  lambda_rect: 0.01
-  lambda_sparse: 0.0000001
-  decom_epochs: 30
+    num_layers: 4
+  vgg:
+    in_channels: 3
+    base_channels: 64
+  vgg_pretrained_path: /home/nju-student/mkh/codes/LLIE/src/llie/models/vgg16.weight
+  start_decay_epoch: 100
 
 
 train:
@@ -30,6 +24,7 @@ train:
   optimizer:
     name: Adam
     weight_decay: 0.0005
+    betas: [0.5, 0.999]
   scheduler:
     name: ReduceLROnPlateau
     factor: 0.5
