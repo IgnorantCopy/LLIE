@@ -29,6 +29,9 @@ def get_model(config, logger: "loguru.Logger") -> pl.LightningModule:
     elif name == "RetinexNetV2":
         from src.llie.models.retinex_net_v2 import RetinexNetV2
         model = RetinexNetV2(config, logger)
+    elif name == "EnlightenGAN":
+        from src.llie.models.enlighten_gan import EnlightenGAN
+        model = EnlightenGAN(config, logger)
     else:
         logger.error(f"Invalid model name: {name}")
         raise ValueError(f"Invalid model name: {name}")
@@ -97,6 +100,9 @@ def get_datamodule(data_config, logger: "loguru.Logger"):
     elif name == "Unpaired":
         from src.llie.data.unpaired import UnpairedDataModule
         data_module = UnpairedDataModule(data_config)
+    elif name == "UnpairedGAN":
+        from src.llie.data.unpaired import UnpairedGANDataModule
+        data_module = UnpairedGANDataModule(data_config)
     else:
         logger.error(f"Invalid dataset: {name}")
         raise ValueError(f"Invalid dataset: {name}")

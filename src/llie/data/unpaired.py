@@ -3,9 +3,12 @@ import glob
 from torch.utils.data import Dataset
 from torchvision import transforms
 from PIL import Image
+from PIL import ImageFile
 
 from llie.data.utils import split_train_val
 from src.llie.data.utils import DataModuleFromConfig
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class UnpairedDataset(Dataset):
@@ -68,7 +71,9 @@ class UnpairedGANDataset(Dataset):
         if self.transform is not None:
             img_a = self.transform(img_a)
             img_b = self.transform(img_b)
-        return img_a, img_b
+        r, g, b = (img_a[0] + 1) / 2, (img_a[1] + 1) / 2, (img_a[2] + 1) / 2
+        attn_map = 1. - (0.299 * r + 0.587 * g + 0.114 * b).unsqueeze(0)
+        return img_a, img_b, attn_map
 
 
 class UnpairedGANDataModule(DataModuleFromConfig):
@@ -92,5 +97,5 @@ class UnpairedGANDataModule(DataModuleFromConfig):
 
     def setup(self, stage: str):
         train_dataset = UnpairedGANDataset(root_dir=self.root, transform=self.train_transform)
-        self.train_dataset, self.val_dataset = split_train_val(train_dataset)
+        self.train_dataset, self.val_dataset = split_train_val(self.data_config, train_dataset)
         self.val_dataset.transform = self.test_transform

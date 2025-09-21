@@ -16,6 +16,8 @@ model:
     base_channels: 64
   vgg_pretrained_path: /home/nju-student/mkh/codes/LLIE/src/llie/models/vgg16.weight
   start_decay_epoch: 100
+  patch_size: 32
+  num_patches: 5
 
 
 train:
@@ -30,13 +32,13 @@ train:
     factor: 0.5
     patience: 10
     min_lr: 0.000001
-  log_dir: ./logs/retinex_net_v2/lolv1
+  log_dir: ./logs/retinex_net_v2/unpaired
 
 
 data:
-  name: LOLv1
-  root: /home/nju-student/mkh/datasets/LLIE/LOLv1
-  batch_size: 1
+  name: UnpairedGAN
+  root: /home/nju-student/mkh/datasets/LLIE/EnlightenGAN/Train
+  batch_size: 16
   num_workers: 4
   pin_memory: True
   height: 400

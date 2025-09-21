@@ -22,7 +22,7 @@ def pad_tensor(tensor: torch.Tensor, div: int = 16):
             pad_left = width_diff // 2
             pad_right = width_diff - pad_left
 
-        tensor = nn.ReflectionPad2d((pad_left, pad_right, pad_top, pad_bottom))
+        tensor = nn.ReflectionPad2d((pad_left, pad_right, pad_top, pad_bottom))(tensor)
 
     return tensor, pad_left, pad_right, pad_top, pad_bottom
 
