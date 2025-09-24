@@ -32,12 +32,13 @@ train:
     factor: 0.5
     patience: 10
     min_lr: 0.000001
-  log_dir: ./logs/retinex_net_v2/unpaired
+  log_dir: ./logs/enlighten_gan/unpaired
 
 
 data:
   name: UnpairedGAN
   root: /home/nju-student/mkh/datasets/LLIE/EnlightenGAN/Train
+  test_root: /home/nju-student/mkh/datasets/LLIE/Test
   batch_size: 16
   num_workers: 4
   pin_memory: True

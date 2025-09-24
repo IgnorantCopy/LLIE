@@ -212,6 +212,8 @@ __marimo__/
 src/test/RetinexNet/
 src/test/SGM-Low-Light/
 src/test/EnlightenGAN/
+src/test/ZeroDCE/
 src/test/hw/
+src/test/PIRM2018/
 src/llie/logs/
 src/llie/models/*.weight

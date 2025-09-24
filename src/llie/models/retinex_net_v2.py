@@ -341,7 +341,7 @@ class RetinexNetV2(pl.LightningModule):
         self.extra_logger.info(f"Start training stage.")
 
     def training_step(self, batch, batch_idx):
-        high, low = batch
+        high, low = batch["high"], batch["low"]
         self.forward(low, high)
         self._compute_loss(high)
         self._compute_metrics(high)
@@ -374,7 +374,7 @@ class RetinexNetV2(pl.LightningModule):
         self.extra_logger.info(f"Start validation stage.")
 
     def validation_step(self, batch, batch_idx):
-        high, low = batch
+        high, low = batch["high"], batch["low"]
         self.forward(low, high)
         self._compute_loss(high)
         self._compute_metrics(high)
@@ -427,7 +427,7 @@ class RetinexNetV2(pl.LightningModule):
         self.extra_logger.info(f"Training finished.")
 
     def test_step(self, batch, batch_idx):
-        high, low = batch
+        high, low = batch["high"], batch["low"]
         self.forward(low, high)
         self._compute_loss(high)
         self._compute_metrics(high)
@@ -467,6 +467,6 @@ class RetinexNetV2(pl.LightningModule):
         self.extra_logger.info(f"Testing finished.")
 
     def predict_step(self, batch, batch_idx):
-        _, low = batch
+        low = batch["low"]
         self.forward(low)
         return torch.clip(self.high_pred.detach().cpu() * 255, 0, 255).to(torch.uint8)

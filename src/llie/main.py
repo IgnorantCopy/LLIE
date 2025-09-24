@@ -28,7 +28,7 @@ def main():
         config_path = os.path.join(os.path.dirname(resume), "../../../config.yaml")
     config = load_config(config_path)
     model_config, train_config, data_config = config["model"], config["train"], config["data"]
-    pl.seed_everything(getattr(train_config, "seed", 42))
+    pl.seed_everything(train_config.get("seed", 42))
 
     log_dir = os.path.join(train_config["log_dir"], datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
     os.makedirs(log_dir, exist_ok=True)
@@ -40,6 +40,7 @@ def main():
     datamodule = get_datamodule(data_config, extra_logger)
 
     trainer = pl.Trainer(max_epochs=train_config["epochs"], accelerator=device, devices="auto",
+                         gradient_clip_val=train_config.get("grad_clip", 0),
                          logger=logger, default_root_dir=log_dir)
     trainer.fit(model=model, datamodule=datamodule, ckpt_path=resume)
     trainer.test(model=model, datamodule=datamodule)

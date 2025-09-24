@@ -32,6 +32,9 @@ def get_model(config, logger: "loguru.Logger") -> pl.LightningModule:
     elif name == "EnlightenGAN":
         from src.llie.models.enlighten_gan import EnlightenGAN
         model = EnlightenGAN(config, logger)
+    elif name == "ZeroDCE":
+        from src.llie.models.zero_dce import ZeroDCE
+        model = ZeroDCE(config, logger)
     else:
         logger.error(f"Invalid model name: {name}")
         raise ValueError(f"Invalid model name: {name}")

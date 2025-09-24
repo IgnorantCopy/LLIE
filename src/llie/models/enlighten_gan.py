@@ -7,6 +7,7 @@ from torch.autograd import Variable
 import lightning as pl
 import loguru
 import random
+import pyiqa
 from typing import Optional
 
 from src.llie.utils.config import get_optimizer, get_scheduler
@@ -227,7 +228,7 @@ class VGG16(nn.Module):
             param.requires_grad = False
 
     def load_pretrained(self, path: str):
-        self.load_state_dict(torch.load(path))
+        self.load_state_dict(torch.load(path, weights_only=True))
         self._freeze()
 
 # ========================================================================================================
@@ -302,7 +303,7 @@ class EnlightenGAN(pl.LightningModule):
         self.gan_loss = GANLoss()
 
         # metrics
-
+        self.niqe = pyiqa.create_metric("niqe")
 
     def forward(self, real_a: Variable, real_b: Optional[Variable], attn_map: Variable, real_image: Variable):
         self.fake_b, latent_real_a = self.generatorA(real_image, attn_map)
@@ -366,12 +367,17 @@ class EnlightenGAN(pl.LightningModule):
 
         return loss_discriminatorP
 
+    def _compute_metrics(self, real_a: Variable):
+        fake_b = torch.clip((self.fake_b + 1) / 2, 0, 1)
+        real_a = torch.clip((real_a + 1) / 2, 0, 1)
+        self.niqe_score = self.niqe(fake_b, real_a).mean()
+
     def on_train_epoch_start(self):
         self.extra_logger.info(f"Epoch {self.current_epoch} starts.")
         self.extra_logger.info(f"Start training stage.")
 
     def training_step(self, batch, batch_idx):
-        img_a, img_b, attn_map = batch
+        img_a, img_b, attn_map = batch["low"], batch["high"], batch["attn_map"]
         real_a = Variable(img_a)
         real_b = Variable(img_b)
         attn_map = Variable(attn_map)
@@ -398,18 +404,21 @@ class EnlightenGAN(pl.LightningModule):
         self.manual_backward(self.loss_discriminatorP)
         optimizerDP.step()
 
+        self._compute_metrics(real_a)
+
         # log
         self.log_dict({
             "train/loss_generatorA": self.loss_generatorA,
             "train/loss_discriminatorA": self.loss_discriminatorA,
             "train/loss_discriminatorP": self.loss_discriminatorP,
+            "train/niqe": self.niqe_score,
         }, on_step=True, on_epoch=True)
 
     def on_validation_epoch_start(self):
         self.extra_logger.info(f"Start validation stage.")
 
     def validation_step(self, batch, batch_idx):
-        img_a, img_b, attn_map = batch
+        img_a, img_b, attn_map = batch["low"], batch["high"], batch["attn_map"]
         real_a = Variable(img_a)
         real_b = Variable(img_b)
         attn_map = Variable(attn_map)
@@ -419,11 +428,13 @@ class EnlightenGAN(pl.LightningModule):
         self.loss_generatorA = self._compute_loss_generator(real_a, real_b)
         self.loss_discriminatorA = self._compute_loss_discriminatorA(real_b)
         self.loss_discriminatorP = self._compute_loss_discriminatorP()
+        self._compute_metrics(real_a)
         # log
         self.log_dict({
             "val/loss_generatorA": self.loss_generatorA,
             "val/loss_discriminatorA": self.loss_discriminatorA,
             "val/loss_discriminatorP": self.loss_discriminatorP,
+            "val/niqe": self.niqe_score,
         }, on_step=True, on_epoch=True)
 
         # log images
@@ -461,7 +472,7 @@ class EnlightenGAN(pl.LightningModule):
         self.extra_logger.info(f"Training finished.")
 
     def test_step(self, batch, batch_idx):
-        img_a, img_b, attn_map = batch
+        img_a, img_b, attn_map = batch["low"], batch["high"], batch["attn_map"]
         real_a = Variable(img_a)
         real_b = Variable(img_b)
         attn_map = Variable(attn_map)
@@ -471,11 +482,13 @@ class EnlightenGAN(pl.LightningModule):
         self.loss_generatorA = self._compute_loss_generator(real_a, real_b)
         self.loss_discriminatorA = self._compute_loss_discriminatorA(real_b)
         self.loss_discriminatorP = self._compute_loss_discriminatorP()
+        self._compute_metrics(real_a)
         # log
         self.log_dict({
             "test/loss_generatorA": self.loss_generatorA,
             "test/loss_discriminatorA": self.loss_discriminatorA,
             "test/loss_discriminatorP": self.loss_discriminatorP,
+            "test/niqe": self.niqe_score,
         }, on_step=False, on_epoch=True)
 
         # log images
@@ -499,7 +512,7 @@ class EnlightenGAN(pl.LightningModule):
         self.extra_logger.info(f"Testing finished.")
 
     def predict_step(self, batch, batch_idx):
-        img_a, attn_map = batch
+        img_a, attn_map = batch["low"], batch["attn_map"]
         real_a = Variable(img_a)
         attn_map = Variable(attn_map)
         real_image = Variable(img_a)

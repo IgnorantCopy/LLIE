@@ -64,7 +64,10 @@ class LOLDataset(Dataset):
             high_image = self.transform(high_image)
             low_image = self.transform(low_image)
 
-        return high_image, low_image
+        return {
+            "high": high_image,
+            "low": low_image,
+        }
 
 
 class LOLDataModule(DataModuleFromConfig):
