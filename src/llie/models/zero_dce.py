@@ -229,7 +229,7 @@ class ZeroDCE(pl.LightningModule):
             "train/loss_col": self.loss_col_val,
             "train/loss_tv": self.loss_tv_val,
             "train/loss": loss,
-        }, on_step=False, on_epoch=True)
+        }, on_step=False, on_epoch=True, batch_size=image.shape[0])
         return loss
 
     def on_validation_epoch_start(self):
@@ -245,7 +245,7 @@ class ZeroDCE(pl.LightningModule):
             "val/loss_col": self.loss_col_val,
             "val/loss_tv": self.loss_tv_val,
             "val/loss": loss,
-        }, on_step=False, on_epoch=True)
+        }, on_step=False, on_epoch=True, batch_size=image.shape[0])
 
         if batch_idx == 0:
             image = image[0].detach().cpu()
@@ -276,7 +276,7 @@ class ZeroDCE(pl.LightningModule):
             "test/loss_col": self.loss_col_val,
             "test/loss_tv": self.loss_tv_val,
             "test/loss": loss,
-        }, on_step=False, on_epoch=True)
+        }, on_step=False, on_epoch=True, batch_size=image.shape[0])
 
         if batch_idx == 0:
             image = image[0].detach().cpu()

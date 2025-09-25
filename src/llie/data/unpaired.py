@@ -1,7 +1,6 @@
 import os
 import glob
 from torch.utils.data import Dataset
-from torchvision import transforms
 from PIL import Image
 from PIL import ImageFile
 
@@ -38,7 +37,10 @@ class UnpairedDataset(Dataset):
         image = Image.open(image_path).convert('RGB')
         if self.transform is not None:
             image = self.transform(image)
-        return {"low": image}
+        return {
+            "low": image,
+            "low_path": image_path,
+        }
 
 
 class UnpairedDataModule(DataModuleFromConfig):
@@ -74,41 +76,23 @@ class UnpairedGANDataset(Dataset):
         path_b = self.pathsB[index % len(self.pathsB)]
         img_a = Image.open(path_a).convert('RGB')
         img_b = Image.open(path_b).convert('RGB')
-        img_a = img_a.resize((img_a.size[0] // 16 * 16, img_a.size[1] // 16 * 16), Image.Resampling.BICUBIC)
-        img_b = img_b.resize((img_b.size[0] // 16 * 16, img_b.size[1] // 16 * 16), Image.Resampling.BICUBIC)
         if self.transform is not None:
             img_a = self.transform(img_a)
             img_b = self.transform(img_b)
-        r, g, b = (img_a[0] + 1) / 2, (img_a[1] + 1) / 2, (img_a[2] + 1) / 2
-        attn_map = 1. - (0.299 * r + 0.587 * g + 0.114 * b).unsqueeze(0)
         return {
             "low": img_a,
             "high": img_b,
-            "attn_map": attn_map
+            "low_path": path_a,
+            "high_path": path_b,
         }
 
 
 class UnpairedGANDataModule(DataModuleFromConfig):
     def __init__(self, data_config):
         super().__init__(data_config)
-        self.test_root = data_config["test_root"]
-        self.train_transform = transforms.Compose([
-            self.train_transform,
-            transforms.Normalize(
-                mean=[0.5, 0.5, 0.5],
-                std=[0.5, 0.5, 0.5]
-            )
-        ])
-        self.test_transform = transforms.Compose([
-            self.test_transform,
-            transforms.Normalize(
-                mean=[0.5, 0.5, 0.5],
-                std=[0.5, 0.5, 0.5]
-            )
-        ])
 
     def setup(self, stage: str):
         train_dataset = UnpairedGANDataset(root_dir=self.root, transform=self.train_transform)
         self.train_dataset, self.val_dataset = split_train_val(self.data_config, train_dataset)
         self.val_dataset.transform = self.test_transform
-        self.test_dataset = UnpairedDataset(root_dir=self.test_root, transform=self.test_transform, sub_folder=True)
+        self.test_dataset = UnpairedGANDataset(root_dir=self.root, transform=self.test_transform)

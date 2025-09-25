@@ -1,0 +1,6 @@
+test:
+  name: Unpaired
+  attn_map: True
+  root: /home/nju-student/mkh/datasets/LLIE/Test
+  sub_folder: True
+  save_path: /home/nju-student/mkh/codes/LLIE/results/unpaired_all

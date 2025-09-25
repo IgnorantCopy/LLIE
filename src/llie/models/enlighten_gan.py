@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,6 +9,7 @@ import lightning as pl
 import loguru
 import random
 import pyiqa
+from PIL import Image
 from typing import Optional
 
 from src.llie.utils.config import get_optimizer, get_scheduler
@@ -232,7 +234,7 @@ class VGG16(nn.Module):
         self._freeze()
 
 # ========================================================================================================
-#                                             Loss functions
+#                                             Loss Functions
 # ========================================================================================================
 
 class PerceptualLoss(nn.Module):
@@ -297,6 +299,10 @@ class EnlightenGAN(pl.LightningModule):
         self.start_decay_epoch = self.model_config["start_decay_epoch"]
         self.extra_logger = logger
         self.automatic_optimization = False
+
+        self.save_path = config["data"].get("save_path", "")
+        if self.save_path:
+            os.makedirs(self.save_path, exist_ok=True)
 
         # loss functions
         self.perceptual_loss = PerceptualLoss(num_features=self.model_config["vgg"]["base_channels"] * 8)
@@ -367,10 +373,9 @@ class EnlightenGAN(pl.LightningModule):
 
         return loss_discriminatorP
 
-    def _compute_metrics(self, real_a: Variable):
+    def _compute_metrics(self):
         fake_b = torch.clip((self.fake_b + 1) / 2, 0, 1)
-        real_a = torch.clip((real_a + 1) / 2, 0, 1)
-        self.niqe_score = self.niqe(fake_b, real_a).mean()
+        self.niqe_score = self.niqe(fake_b).mean()
 
     def on_train_epoch_start(self):
         self.extra_logger.info(f"Epoch {self.current_epoch} starts.")
@@ -412,7 +417,7 @@ class EnlightenGAN(pl.LightningModule):
             "train/loss_discriminatorA": self.loss_discriminatorA,
             "train/loss_discriminatorP": self.loss_discriminatorP,
             "train/niqe": self.niqe_score,
-        }, on_step=True, on_epoch=True)
+        }, on_step=True, on_epoch=True, batch_size=real_a.shape[0])
 
     def on_validation_epoch_start(self):
         self.extra_logger.info(f"Start validation stage.")
@@ -435,7 +440,7 @@ class EnlightenGAN(pl.LightningModule):
             "val/loss_discriminatorA": self.loss_discriminatorA,
             "val/loss_discriminatorP": self.loss_discriminatorP,
             "val/niqe": self.niqe_score,
-        }, on_step=True, on_epoch=True)
+        }, on_step=True, on_epoch=True, batch_size=real_a.shape[0])
 
         # log images
         if batch_idx == 0:
@@ -489,7 +494,7 @@ class EnlightenGAN(pl.LightningModule):
             "test/loss_discriminatorA": self.loss_discriminatorA,
             "test/loss_discriminatorP": self.loss_discriminatorP,
             "test/niqe": self.niqe_score,
-        }, on_step=False, on_epoch=True)
+        }, on_step=False, on_epoch=True, batch_size=real_a.shape[0])
 
         # log images
         if batch_idx == 0:
@@ -518,3 +523,14 @@ class EnlightenGAN(pl.LightningModule):
         real_image = Variable(img_a)
 
         self.forward(real_a, None, attn_map, real_image)
+        self._compute_metrics()
+        self.extra_logger.info(f"NIQE score: {self.niqe_score}")
+
+        # save results
+        fake_b = (self.fake_b.detach().cpu() + 1) / 2
+        fake_b = torch.clip(fake_b * 255, 0, 255).to(torch.uint8)
+        low_path = batch["low_path"]
+        for i in range(fake_b.shape[0]):
+            save_path = os.path.join(self.save_path, os.path.basename(low_path[i]))
+            Image.fromarray(fake_b[i].permute(1, 2, 0).numpy()).save(save_path)
+

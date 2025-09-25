@@ -366,7 +366,7 @@ class RetinexNetV2(pl.LightningModule):
             "train/ssim": self.ssim_val,
             "train/psnr": self.psnr_val,
             "train/uqi": self.uqi_val,
-        }, on_step=False, on_epoch=True)
+        }, on_step=False, on_epoch=True, batch_size=high.shape[0])
 
         return self.total_loss
 
@@ -387,7 +387,7 @@ class RetinexNetV2(pl.LightningModule):
             "val/ssim": self.ssim_val,
             "val/psnr": self.psnr_val,
             "val/uqi": self.uqi_val,
-        }, on_step=False, on_epoch=True)
+        }, on_step=False, on_epoch=True, batch_size=high.shape[0])
 
         # log images
         if batch_idx == 0:
@@ -440,7 +440,7 @@ class RetinexNetV2(pl.LightningModule):
             "test/ssim": self.ssim_val,
             "test/psnr": self.psnr_val,
             "test/uqi": self.uqi_val,
-        }, on_step=False, on_epoch=True)
+        }, on_step=False, on_epoch=True, batch_size=high.shape[0])
 
         # log images
         if batch_idx == 0:

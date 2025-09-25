@@ -37,12 +37,12 @@ train:
 
 data:
   name: UnpairedGAN
+  attn_map: True
   root: /home/nju-student/mkh/datasets/LLIE/EnlightenGAN/Train
-  test_root: /home/nju-student/mkh/datasets/LLIE/Test
   batch_size: 16
   num_workers: 4
   pin_memory: True
   height: 400
-  width: 600
+  width: 608
   val_ratio: 0.2
   seed: 42

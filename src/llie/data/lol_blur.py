@@ -52,6 +52,8 @@ class LOLBlurDataset(Dataset):
         return {
             "high": high_image,
             "low": low_image,
+            "high_path": high_image_path,
+            "low_path": low_image_path
         }
 
 

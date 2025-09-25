@@ -208,13 +208,13 @@ class RetinexNet(pl.LightningModule):
             decom_optimizer.zero_grad()
             self.manual_backward(self.decom_loss)
             decom_optimizer.step()
-            self.log("train/decom_loss", self.decom_loss, on_step=True, on_epoch=True, prog_bar=True)
+            self.log("train/decom_loss", self.decom_loss, on_step=True, on_epoch=True, prog_bar=True, batch_size=low.shape[0])
             return self.decom_loss
         else:
             relight_optimizer.zero_grad()
             self.manual_backward(self.relight_loss)
             relight_optimizer.step()
-            self.log("train/relight_loss", self.relight_loss, on_step=True, on_epoch=True, prog_bar=True)
+            self.log("train/relight_loss", self.relight_loss, on_step=True, on_epoch=True, prog_bar=True, batch_size=low.shape[0])
             return self.relight_loss
 
     def on_validation_epoch_start(self):
@@ -226,9 +226,9 @@ class RetinexNet(pl.LightningModule):
         self._compute_loss(low, high)
 
         if self.current_epoch < self.decom_epochs:
-            self.log("val/decom_loss", self.decom_loss, on_step=False, on_epoch=True, prog_bar=True)
+            self.log("val/decom_loss", self.decom_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=low.shape[0])
         else:
-            self.log("val/relight_loss", self.relight_loss, on_step=False, on_epoch=True, prog_bar=True)
+            self.log("val/relight_loss", self.relight_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=low.shape[0])
         # log images
         if batch_idx == 0:
             R_low, I_low = self.R_low[0].detach().cpu(), self.I_low[0].detach().cpu()
@@ -269,9 +269,9 @@ class RetinexNet(pl.LightningModule):
         self._compute_loss(low, high)
 
         if self.current_epoch < self.decom_epochs:
-            self.log("test/decom_loss", self.decom_loss, on_step=False, on_epoch=True, prog_bar=True)
+            self.log("test/decom_loss", self.decom_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=low.shape[0])
         else:
-            self.log("test/relight_loss", self.relight_loss, on_step=False, on_epoch=True, prog_bar=True)
+            self.log("test/relight_loss", self.relight_loss, on_step=False, on_epoch=True, prog_bar=True, batch_size=low.shape[0])
         # log images
         if batch_idx == 0:
             R_low, I_low = self.R_low[0].detach().cpu(), self.I_low[0].detach().cpu()

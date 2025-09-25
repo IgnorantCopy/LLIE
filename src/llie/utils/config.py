@@ -19,6 +19,11 @@ def save_config(config, config_file):
         yaml.dump(config, f, default_flow_style=False, allow_unicode=True)
 
 
+def override_config(src_config, dst_config):
+    for key, value in src_config.items():
+        dst_config[key] = value
+
+
 def get_model(config, logger: "loguru.Logger") -> pl.LightningModule:
     name = config["model"]["name"]
 
@@ -110,5 +115,10 @@ def get_datamodule(data_config, logger: "loguru.Logger"):
         logger.error(f"Invalid dataset: {name}")
         raise ValueError(f"Invalid dataset: {name}")
 
+    attn_map = data_config.get("attn_map", False)
+    if attn_map:
+        from src.llie.data.gan import GANDataModule
+        data_module = GANDataModule(data_module)
     logger.info(f"{name} dataset loaded")
+
     return data_module
