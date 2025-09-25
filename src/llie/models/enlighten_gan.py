@@ -408,7 +408,7 @@ class EnlightenGAN(pl.LightningModule):
         self.manual_backward(self.loss_discriminatorP)
         optimizerDP.step()
 
-        self._compute_metrics(real_a)
+        self._compute_metrics()
 
         # log
         self.log_dict({
@@ -432,7 +432,7 @@ class EnlightenGAN(pl.LightningModule):
         self.loss_generatorA = self._compute_loss_generator(real_a, real_b)
         self.loss_discriminatorA = self._compute_loss_discriminatorA(real_b)
         self.loss_discriminatorP = self._compute_loss_discriminatorP()
-        self._compute_metrics(real_a)
+        self._compute_metrics()
         # log
         self.log_dict({
             "val/loss_generatorA": self.loss_generatorA,
@@ -486,7 +486,7 @@ class EnlightenGAN(pl.LightningModule):
         self.loss_generatorA = self._compute_loss_generator(real_a, real_b)
         self.loss_discriminatorA = self._compute_loss_discriminatorA(real_b)
         self.loss_discriminatorP = self._compute_loss_discriminatorP()
-        self._compute_metrics(real_a)
+        self._compute_metrics()
         # log
         self.log_dict({
             "test/loss_generatorA": self.loss_generatorA,
