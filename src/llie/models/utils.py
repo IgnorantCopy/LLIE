@@ -1,5 +1,8 @@
+import os
 import torch
 import torch.nn as nn
+from typing import List
+from PIL import Image
 
 
 def pad_tensor(tensor: torch.Tensor, div: int = 16):
@@ -30,3 +33,11 @@ def pad_tensor(tensor: torch.Tensor, div: int = 16):
 def pad_tensor_back(tensor: torch.Tensor, pad_left: int, pad_right: int, pad_top: int, pad_bottom: int):
     h, w = tensor.shape[-2:]
     return tensor[..., pad_top: h - pad_bottom, pad_left: w - pad_right]
+
+
+def save_batch_tensor(tensor: torch.Tensor, path: str, batch: dict):
+    low_path = batch["low_path"]
+    height, width = batch["height"], batch["width"]
+    for i in range(tensor.shape[0]):
+        save_path = os.path.join(path, os.path.basename(low_path[i]))
+        Image.fromarray(tensor[i].permute(1, 2, 0).numpy()).resize((height[i], width[i]), Image.Resampling.BICUBIC).save(save_path)

@@ -1,0 +1,5 @@
+test:
+  name: Unpaired
+  root: /home/nju-student/mkh/datasets/LLIE/Test/MEF
+  sub_folder: False
+  save_path: /home/nju-student/mkh/codes/LLIE/results/mef

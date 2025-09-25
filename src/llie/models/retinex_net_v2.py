@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,6 +11,7 @@ from typing import Tuple, List, Optional
 
 from src.llie.metrics.ssim import SSIM
 from src.llie.utils.config import get_optimizer, get_scheduler
+from src.llie.models.utils import save_batch_tensor
 
 
 # ========================================================================================================
@@ -217,6 +219,10 @@ class RetinexNetV2(pl.LightningModule):
         self.decom_net = self._make_sgmn(self.decom_net_config)
         self.enhance_net = self._make_msrdn(self.enhance_net_config)
         self.restore_net = self._make_msrdn(self.restore_net_config)
+
+        self.save_path = config["data"].get("save_path", "")
+        if self.save_path:
+            os.makedirs(self.save_path, exist_ok=True)
 
         self.ssim = SSIM(window_size=11)
         self.l1_loss = nn.L1Loss()
@@ -469,4 +475,5 @@ class RetinexNetV2(pl.LightningModule):
     def predict_step(self, batch, batch_idx):
         low = batch["low"]
         self.forward(low)
-        return torch.clip(self.high_pred.detach().cpu() * 255, 0, 255).to(torch.uint8)
+        high_pred = torch.clip(self.high_pred.detach().cpu() * 255, 0, 255).to(torch.uint8)
+        save_batch_tensor(high_pred, self.save_path, batch)

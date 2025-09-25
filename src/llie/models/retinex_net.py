@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -11,6 +12,7 @@ import loguru
 from typing import Tuple, Optional
 
 from src.llie.utils.config import get_optimizer, get_scheduler
+from src.llie.models.utils import save_batch_tensor
 
 
 class DecomNet(nn.Module):
@@ -106,6 +108,10 @@ class RetinexNet(pl.LightningModule):
 
         self.decom_net = DecomNet(self.in_channels, self.num_layers, self.hidden_dim, self.kernel_size)
         self.relight_net = RelightNet(self.in_channels, self.hidden_dim, self.kernel_size)
+
+        self.save_path = config["data"].get("save_path", "")
+        if self.save_path:
+            os.makedirs(self.save_path, exist_ok=True)
 
         self.automatic_optimization = False
 
@@ -296,4 +302,5 @@ class RetinexNet(pl.LightningModule):
     def predict_step(self, batch, batch_idx):
         low = batch["low"]
         self.forward(low, denoise=True)
-        return torch.clip(self.S * 255, 0, 255).to(torch.uint8)
+        S = torch.clip(self.S * 255, 0, 255).to(torch.uint8)
+        save_batch_tensor(S, self.save_path, batch)

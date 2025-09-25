@@ -59,6 +59,8 @@ class SICEDataset(Dataset):
             high_image = high_image.transpose(Image.Transpose.ROTATE_90)
             low_image = low_image.transpose(Image.Transpose.ROTATE_90)
 
+        original_size = high_image.size
+
         if self.transform is not None:
             high_image = self.transform(high_image)
             low_image = self.transform(low_image)
@@ -67,7 +69,9 @@ class SICEDataset(Dataset):
             "high": high_image,
             "low": low_image,
             "high_path": high_image_path,
-            "low_path": low_image_path
+            "low_path": low_image_path,
+            "height": original_size[0],
+            "width": original_size[1],
         }
 
 

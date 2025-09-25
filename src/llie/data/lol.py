@@ -60,6 +60,8 @@ class LOLDataset(Dataset):
         high_image = Image.open(high_image_path).convert('RGB')
         low_image = Image.open(low_image_path).convert('RGB')
 
+        original_size = high_image.size
+
         if self.transform:
             high_image = self.transform(high_image)
             low_image = self.transform(low_image)
@@ -69,6 +71,8 @@ class LOLDataset(Dataset):
             "low": low_image,
             "high_path": high_image_path,
             "low_path": low_image_path,
+            "height": original_size[0],
+            "width": original_size[1],
         }
 
 

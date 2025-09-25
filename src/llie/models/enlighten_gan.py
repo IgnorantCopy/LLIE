@@ -9,11 +9,10 @@ import lightning as pl
 import loguru
 import random
 import pyiqa
-from PIL import Image
 from typing import Optional
 
 from src.llie.utils.config import get_optimizer, get_scheduler
-from src.llie.models.utils import pad_tensor, pad_tensor_back
+from src.llie.models.utils import pad_tensor, pad_tensor_back, save_batch_tensor
 
 
 # ========================================================================================================
@@ -529,8 +528,5 @@ class EnlightenGAN(pl.LightningModule):
         # save results
         fake_b = (self.fake_b.detach().cpu() + 1) / 2
         fake_b = torch.clip(fake_b * 255, 0, 255).to(torch.uint8)
-        low_path = batch["low_path"]
-        for i in range(fake_b.shape[0]):
-            save_path = os.path.join(self.save_path, os.path.basename(low_path[i]))
-            Image.fromarray(fake_b[i].permute(1, 2, 0).numpy()).save(save_path)
+        save_batch_tensor(fake_b, self.save_path, batch)
 

@@ -35,11 +35,17 @@ class UnpairedDataset(Dataset):
     def __getitem__(self, index: int):
         image_path = self.image_paths[index]
         image = Image.open(image_path).convert('RGB')
+
+        original_size = image.size
+
         if self.transform is not None:
             image = self.transform(image)
+
         return {
             "low": image,
             "low_path": image_path,
+            "height": original_size[0],
+            "width": original_size[1],
         }
 
 

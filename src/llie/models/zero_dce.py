@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,6 +10,7 @@ from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMe
 from torchmetrics.regression import MeanAbsoluteError
 
 from src.llie.utils.config import get_optimizer, get_scheduler
+from src.llie.models.utils import save_batch_tensor
 
 
 # ========================================================================================================
@@ -171,7 +173,10 @@ class ZeroDCE(pl.LightningModule):
         self.n_iterations = model_config.get('n_iterations', 8)
         self.dce_net = DCENet(in_channels=self.in_channels, base_channels=self.base_channels, n_iterations=self.n_iterations)
         self.extra_logger = logger
-        # self.automatic_optimization = False
+
+        self.save_path = config["data"].get("save_path", "")
+        if self.save_path:
+            os.makedirs(self.save_path, exist_ok=True)
 
         # loss functions
         self.loss_spa = SpatialConsistencyLoss()
@@ -214,6 +219,11 @@ class ZeroDCE(pl.LightningModule):
         self.loss_col_val = self.lambda_col * self.loss_col(enhanced)
         self.loss_tv_val = self.lambda_tv * self.loss_tv(a)
         return self.loss_spa_val + self.loss_exp_val + self.loss_col_val + self.loss_tv_val
+
+    def _compute_metrics(self, low: torch.Tensor, high: torch.Tensor):
+        self.psnr_val = self.psnr(high, low)
+        self.ssim_val = self.ssim(high, low)
+        self.mae_val = self.mae(high, low)
 
     def on_train_epoch_start(self):
         self.extra_logger.info(f"Epoch {self.current_epoch} starts.")
@@ -294,4 +304,6 @@ class ZeroDCE(pl.LightningModule):
         self.extra_logger.info(f"Testing finished.")
 
     def predict_step(self, batch, batch_idx):
-        return self.forward(batch["low"])
+        enhanced_image = self.forward(batch["low"])
+        enhanced_image = torch.clip(enhanced_image.detach().cpu() * 255, 0, 255).to(torch.uint8)
+        save_batch_tensor(enhanced_image, self.save_path, batch)
