@@ -40,6 +40,9 @@ def get_model(config, logger: "loguru.Logger") -> pl.LightningModule:
     elif name == "ZeroDCE":
         from src.llie.models.zero_dce import ZeroDCE
         model = ZeroDCE(config, logger)
+    elif name == "ZeroDCEPlus":
+        from src.llie.models.zero_dce_plus import ZeroDCEPlus
+        model = ZeroDCEPlus(config, logger)
     else:
         logger.error(f"Invalid model name: {name}")
         raise ValueError(f"Invalid model name: {name}")
