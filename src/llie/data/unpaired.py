@@ -17,7 +17,7 @@ class UnpairedDataset(Dataset):
         self.root = root_dir
         self.transform = transform
         self.sub_folder = sub_folder
-        self.image_paths = self._load_data()
+        self.low_image_paths = self._load_data()
 
     def _load_data(self):
         if not self.sub_folder:
@@ -30,16 +30,16 @@ class UnpairedDataset(Dataset):
         return sorted(image_paths)
 
     def __len__(self) -> int:
-        return len(self.image_paths)
+        return len(self.low_image_paths)
 
     def __getitem__(self, index: int):
-        image_path = self.image_paths[index]
+        image_path = self.low_image_paths[index]
         image = Image.open(image_path).convert('RGB')
 
         original_size = image.size
 
         if self.transform is not None:
-            image = self.transform(image)
+            image = self.transform(image)[0]
 
         return {
             "low": image,
@@ -83,8 +83,7 @@ class UnpairedGANDataset(Dataset):
         img_a = Image.open(path_a).convert('RGB')
         img_b = Image.open(path_b).convert('RGB')
         if self.transform is not None:
-            img_a = self.transform(img_a)
-            img_b = self.transform(img_b)
+            img_a, img_b = self.transform(img_a, img_b)
         return {
             "low": img_a,
             "high": img_b,

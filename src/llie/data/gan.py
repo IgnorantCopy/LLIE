@@ -1,7 +1,7 @@
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-from src.llie.data.utils import DataModuleFromConfig
+from src.llie.data.utils import DataModuleFromConfig, Normalize, Compose
 
 
 class GANDataset(Dataset):
@@ -25,16 +25,16 @@ class GANDataModule(DataModuleFromConfig):
     def __init__(self, father_datamodule: DataModuleFromConfig):
         super().__init__(father_datamodule.data_config)
         self.father_datamodule = father_datamodule
-        self.father_datamodule.train_transform = transforms.Compose([
+        self.father_datamodule.train_transform = Compose([
             self.father_datamodule.train_transform,
-            transforms.Normalize(
+            Normalize(
                 mean=[0.5, 0.5, 0.5],
                 std=[0.5, 0.5, 0.5]
             )
         ])
-        self.father_datamodule.test_transform = transforms.Compose([
+        self.father_datamodule.test_transform = Compose([
             self.father_datamodule.test_transform,
-            transforms.Normalize(
+            Normalize(
                 mean=[0.5, 0.5, 0.5],
                 std=[0.5, 0.5, 0.5]
             )

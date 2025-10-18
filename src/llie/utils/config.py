@@ -43,6 +43,9 @@ def get_model(config, logger: "loguru.Logger") -> pl.LightningModule:
     elif name == "ZeroDCEPlus":
         from src.llie.models.zero_dce_plus import ZeroDCEPlus
         model = ZeroDCEPlus(config, logger)
+    elif name == "LLFlow":
+        from src.llie.models.ll_flow import LLFlow
+        model = LLFlow(config, logger)
     else:
         logger.error(f"Invalid model name: {name}")
         raise ValueError(f"Invalid model name: {name}")
@@ -84,6 +87,10 @@ def get_scheduler(train_config, optimizer: optim.Optimizer, logger: "loguru.Logg
         patience = scheduler_config.get("patience", 10)
         min_lr = scheduler_config.get("min_lr", 1e-6)
         scheduler =  lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=factor, patience=patience, min_lr=min_lr)
+    elif scheduler_name == "MultiStepLR":
+        milestones = scheduler_config["milestones"]
+        gamma = scheduler_config.get("gamma", 0.5)
+        scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=gamma)
     else:
         logger.error(f"Unsupported scheduler: {scheduler_name}")
         raise ValueError(f"Unsupported scheduler: {scheduler_name}")
@@ -119,9 +126,13 @@ def get_datamodule(data_config, logger: "loguru.Logger"):
         raise ValueError(f"Invalid dataset: {name}")
 
     attn_map = data_config.get("attn_map", False)
+    flow = data_config.get("flow", False)
     if attn_map:
         from src.llie.data.gan import GANDataModule
         data_module = GANDataModule(data_module)
+    if flow:
+        from src.llie.data.flow import FlowDataModule
+        data_module = FlowDataModule(data_module)
     logger.info(f"{name} dataset loaded")
 
     return data_module

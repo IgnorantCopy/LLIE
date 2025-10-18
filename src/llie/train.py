@@ -28,7 +28,7 @@ def main():
         config_path = os.path.join(os.path.dirname(resume), "../../../config.yaml")
     config = load_config(config_path)
     model_config, train_config, data_config = config["model"], config["train"], config["data"]
-    pl.seed_everything(train_config.get("seed", 42))
+    pl.seed_everything(data_config.get("seed", 42))
 
     log_dir = os.path.join(train_config["log_dir"], datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
     os.makedirs(log_dir, exist_ok=True)

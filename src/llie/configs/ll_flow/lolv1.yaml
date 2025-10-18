@@ -1,0 +1,47 @@
+model:
+  name: LLFlow
+  ConditionalEncoder:
+    in_channels: 12
+    num_blocks: 24
+    num_features: 64
+    base_channels: 32
+    num_layers: 5
+    blocks: [1, 3, 5, 7]
+  FlowUpsampler:
+    in_channels: 3
+    num_steps: 12
+    additional_steps: 2
+    num_blocks: 3
+    actnorm_scale: 1.0
+
+
+train:
+  epochs: 1300
+  rrdb_start_epoch: 0
+  lr: 0.0005
+  betas: [0.9, 0.99]
+  optimizer:
+    name: Adam
+    weight_decay: 0
+  scheduler:
+    name: MultiStepLR
+    milestones: [40000, 60000, 72000, 76000]
+    gamma: 0.5
+    warmup_steps: 6000
+  log_dir: ./logs/ll_flow/lolv1
+  gt_ratio: 0.2
+
+
+data:
+  name: LOLv1
+  flow: True
+  root: /home/nju-student/mkh/datasets/LLIE/LOLv1
+  batch_size: 8
+  num_workers: 4
+  pin_memory: True
+  height: 400
+  width: 600
+  crop_size: 160
+  val_ratio: 0.2
+  seed: 10
+  quant: 32

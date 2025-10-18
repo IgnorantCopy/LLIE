@@ -1,7 +1,10 @@
+import random
 import torch
 from torch.utils.data import random_split, DataLoader
 from torchvision import transforms
+import torchvision.transforms.functional as F
 import lightning as pl
+from typing import Union
 
 
 def split_train_val(data_config, dataset):
@@ -11,6 +14,74 @@ def split_train_val(data_config, dataset):
     val_size = len(dataset) - train_size
     seed = torch.Generator().manual_seed(seed)
     return random_split(dataset, [train_size, val_size], generator=seed)
+
+
+class Resize(object):
+    def __init__(self, size: Union[int, tuple]):
+        self.resize = transforms.Resize(size)
+
+    def __call__(self, *images):
+        result = [self.resize(image) for image in images]
+        return *result,
+
+
+class ToTensor(object):
+    def __init__(self):
+        self.to_tensor = transforms.ToTensor()
+
+    def __call__(self, *images):
+        result = [image.float() if isinstance(image, torch.Tensor) else self.to_tensor(image) for image in images]
+        return *result,
+
+
+class Normalize(object):
+    def __init__(self, mean, std):
+        self.normalize = transforms.Normalize(mean, std)
+
+    def __call__(self, *images):
+        result = [self.normalize(image) for image in images]
+        return *result,
+
+
+class RandomHorizontalFlip(object):
+    def __init__(self, p=0.5):
+        self.p = p
+
+    def __call__(self, *images):
+        flip = torch.rand(1) < self.p
+        result = [F.hflip(image) if flip else image for image in images]
+        return *result,
+
+
+class RandomVerticalFlip(object):
+    def __init__(self, p=0.5):
+        self.p = p
+
+    def __call__(self, *images):
+        flip = torch.rand(1) < self.p
+        result = [F.vflip(image) if flip else image for image in images]
+        return *result,
+
+
+class RandomCrop(object):
+    def __init__(self, size: Union[int, tuple]):
+        self.size = size if isinstance(size, tuple) else (size, size)
+
+    def __call__(self, *images):
+        _, size_x, size_y = images[0].size()
+        start_x = random.randint(0, size_x - self.size[0] + 1) if size_x > self.size[0] else 0
+        start_y = random.randint(0, size_y - self.size[1] + 1) if size_y > self.size[1] else 0
+        result = [F.crop(image, start_x, start_y, self.size[0], self.size[1]) for image in images]
+        return *result,
+
+class Compose(object):
+    def __init__(self, transform):
+        self.transforms = transform
+
+    def __call__(self, *images):
+        for t in self.transforms:
+            images = t(*images)
+        return images
 
 
 class DataModuleFromConfig(pl.LightningDataModule):
@@ -27,15 +98,15 @@ class DataModuleFromConfig(pl.LightningDataModule):
         self.train_dataset = None
         self.val_dataset = None
         self.test_dataset = None
-        self.train_transform = transforms.Compose([
-            transforms.Resize((int(self.image_height), int(self.image_width))),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomVerticalFlip(),
-            transforms.ToTensor(),
+        self.train_transform = Compose([
+            ToTensor(),
+            Resize((int(self.image_height), int(self.image_width))),
+            RandomHorizontalFlip(),
+            RandomVerticalFlip(),
         ])
-        self.test_transform = transforms.Compose([
-            transforms.Resize((int(self.image_height), int(self.image_width))),
-            transforms.ToTensor(),
+        self.test_transform = Compose([
+            ToTensor(),
+            Resize((int(self.image_height), int(self.image_width))),
         ])
 
     def train_dataloader(self):

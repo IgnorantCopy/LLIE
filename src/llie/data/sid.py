@@ -51,8 +51,7 @@ class SIDDataset(Dataset):
         original_size = high_image.size
 
         if self.transform is not None:
-            high_image = self.transform(high_image)
-            low_image = self.transform(low_image)
+            low_image, high_image = self.transform(low_image, high_image)
 
         return {
             "high": high_image,
