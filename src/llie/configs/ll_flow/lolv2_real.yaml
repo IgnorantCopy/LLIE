@@ -16,25 +16,25 @@ model:
 
 
 train:
-  epochs: 1300
-  lr: 0.0005
+  epochs: 1000
+  lr: 0.000005
   betas: [0.9, 0.99]
   optimizer:
     name: Adam
     weight_decay: 0
   scheduler:
     name: MultiStepLRWarmup
-    milestones: [40000, 60000, 72000, 76000]
+    milestones: [43000, 64600, 77500, 82000]
     gamma: 0.5
-    warmup_steps: 6000
-  log_dir: ./logs/ll_flow/lolv1
+    warmup_steps: 8000
+  log_dir: ./logs/ll_flow/lolv2_real
   gt_ratio: 0.2
 
 
 data:
-  name: LOLv1
+  name: LOLv2_Real
   flow: True
-  root: /home/nju-student/mkh/datasets/LLIE/LOLv1
+  root: /home/nju-student/mkh/datasets/LLIE/LOLv2/Real_captured
   batch_size: 8
   num_workers: 4
   pin_memory: True

@@ -1,0 +1,38 @@
+model:
+  name: KinDPlus
+  in_channels: 3
+  base_channels: 32
+  alpha: 5.0
+  decom_loss:
+    lambda_re: 1.0
+    lambda_rs: 0.009
+    lambda_mc: 0.2
+    lambda_is: 0.15
+  decom_epochs: 2500
+  restoration_epochs: 2400
+  adjustment_epochs: 2000
+
+
+train:
+  epochs: 6900
+  lr: 0.0001
+  optimizer:
+    name: Adam
+    weight_decay: 0.0005
+  scheduler:
+    name: MultiStepLR
+    gamma: 0.5
+    milestones: [300, 500, 1500]
+  log_dir: ./logs/kind_plus/lolv1
+
+
+data:
+  name: LOLv1
+  root: /home/nju-student/mkh/datasets/LLIE/LOLv1
+  batch_size: 4
+  num_workers: 4
+  pin_memory: True
+  height: 400
+  width: 600
+  val_ratio: 0.2
+  seed: 42

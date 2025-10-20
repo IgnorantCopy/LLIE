@@ -46,6 +46,9 @@ def get_model(config, logger: "loguru.Logger") -> pl.LightningModule:
     elif name == "LLFlow":
         from src.llie.models.ll_flow import LLFlow
         model = LLFlow(config, logger)
+    elif name == "KinDPlus":
+        from src.llie.models.kind_plus import KinDPlus
+        model = KinDPlus(config, logger)
     else:
         logger.error(f"Invalid model name: {name}")
         raise ValueError(f"Invalid model name: {name}")
@@ -91,6 +94,12 @@ def get_scheduler(train_config, optimizer: optim.Optimizer, logger: "loguru.Logg
         milestones = scheduler_config["milestones"]
         gamma = scheduler_config.get("gamma", 0.5)
         scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=gamma)
+    elif scheduler_name == "MultiStepLRWarmup":
+        from src.llie.utils.scheduler import MultiStepLRWarmup
+        milestones = scheduler_config["milestones"]
+        gamma = scheduler_config.get("gamma", 0.5)
+        warmup_steps = scheduler_config.get("warmup_steps", 400)
+        scheduler = MultiStepLRWarmup(optimizer, milestones=milestones, gamma=gamma, warmup_epochs=warmup_steps)
     else:
         logger.error(f"Unsupported scheduler: {scheduler_name}")
         raise ValueError(f"Unsupported scheduler: {scheduler_name}")

@@ -53,10 +53,6 @@ class SGMN(nn.Module):
                 nn.init.xavier_uniform_(m.weight)
                 m.bias.data.fill_(0)
 
-    def freeze(self):
-        for param in self.parameters():
-            param.requires_grad = False
-
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor]:
         output = []
         for layer in self.layers:
@@ -424,7 +420,7 @@ class RetinexNetV2(pl.LightningModule):
 
         if self.current_epoch + 1 == self.decom_epochs:
             self.extra_logger.info(f"DecomNet training finished.")
-            self.decom_net.freeze()
+            self.decom_net.requires_grad_(False)
 
     def on_fit_start(self):
         self.extra_logger.info(f"Start training on {self.device}.")

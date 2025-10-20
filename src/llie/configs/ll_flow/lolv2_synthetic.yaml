@@ -16,7 +16,7 @@ model:
 
 
 train:
-  epochs: 1300
+  epochs: 800
   lr: 0.0005
   betas: [0.9, 0.99]
   optimizer:
@@ -24,22 +24,22 @@ train:
     weight_decay: 0
   scheduler:
     name: MultiStepLRWarmup
-    milestones: [40000, 60000, 72000, 76000]
+    milestones: [45000, 67500, 81000, 85500]
     gamma: 0.5
-    warmup_steps: 6000
-  log_dir: ./logs/ll_flow/lolv1
+    warmup_steps: 450
+  log_dir: ./logs/ll_flow/lolv2_synthetic
   gt_ratio: 0.2
 
 
 data:
-  name: LOLv1
+  name: LOLv2_Synthetic
   flow: True
-  root: /home/nju-student/mkh/datasets/LLIE/LOLv1
+  root: /home/nju-student/mkh/datasets/LLIE/LOLv2/Synthetic
   batch_size: 8
   num_workers: 4
   pin_memory: True
-  height: 400
-  width: 600
+  height: 384
+  width: 384
   crop_size: 160
   val_ratio: 0.2
   seed: 10

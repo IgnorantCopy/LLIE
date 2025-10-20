@@ -12,7 +12,7 @@ import loguru
 from typing import Tuple, Optional
 
 from src.llie.utils.config import get_optimizer, get_scheduler
-from src.llie.models.utils import save_batch_tensor
+from src.llie.models.utils import gradient, save_batch_tensor
 
 
 class DecomNet(nn.Module):
@@ -42,10 +42,6 @@ class DecomNet(nn.Module):
         L = self.sigmoid(x[:, 3:4, :, :])
 
         return R, L
-
-    def freeze(self):
-        for param in self.parameters():
-            param.requires_grad = False
 
 
 class RelightNet(nn.Module):
@@ -163,23 +159,8 @@ class RetinexNet(pl.LightningModule):
                           0.01 * self.equal_R_loss
         self.relight_loss = self.relight_loss + 3 * self.smooth_loss_delta
 
-    def _gradient(self, x: torch.Tensor, direction: str):
-        self.smooth_kernel_x = torch.FloatTensor([[0, 0], [-1, 1]]).view((1, 1, 2, 2)).to(x)
-        self.smooth_kernel_y = self.smooth_kernel_x.transpose(2, 3)
-
-        if direction == 'x':
-            kernel = self.smooth_kernel_x
-        elif direction == 'y':
-            kernel = self.smooth_kernel_y
-        else:
-            self.extra_logger.error('RetinexNet._gradient: direction should be x or y')
-            raise ValueError('direction should be x or y')
-
-        grad = torch.abs(F.conv2d(x, kernel, stride=1, padding=1))
-        return grad
-
     def _avg_gradient(self, x: torch.Tensor, direction: str):
-        return F.avg_pool2d(self._gradient(x, direction), kernel_size=3, stride=1, padding=1)
+        return F.avg_pool2d(gradient(x, direction), kernel_size=3, stride=1, padding=1)
 
     def _smooth_loss(self, I: torch.Tensor, R: torch.Tensor):
         R = 0.299 * R[:, 0, :, :] + 0.587 * R[:, 1, :, :] + 0.114 * R[:, 2, :, :]
@@ -187,8 +168,8 @@ class RetinexNet(pl.LightningModule):
         I = I[:, 0, :, :]
         I = I.unsqueeze(1)
         return torch.mean(
-            self._gradient(I, 'x') * torch.exp(-10 * self._avg_gradient(R, 'x')) +
-            self._gradient(I, 'y') * torch.exp(-10 * self._avg_gradient(R, 'y'))
+            gradient(I, 'x') * torch.exp(-10 * self._avg_gradient(R, 'x')) +
+            gradient(I, 'y') * torch.exp(-10 * self._avg_gradient(R, 'y'))
         )
 
     def configure_optimizers(self):
@@ -260,7 +241,7 @@ class RetinexNet(pl.LightningModule):
             self.log("lr", relight_scheduler.get_last_lr()[0])
 
         if self.current_epoch + 1 == self.decom_epochs:
-            self.decom_net.freeze()
+            self.decom_net.requires_grad_(False)
             self.extra_logger.info("DecomNet training is finished, start RelightNet training.")
 
     def on_fit_start(self):

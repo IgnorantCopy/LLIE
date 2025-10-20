@@ -224,13 +224,9 @@ class VGG16(nn.Module):
         # x = self.relu(self.conv5_3(x))
         return x
 
-    def _freeze(self):
-        for param in self.parameters():
-            param.requires_grad = False
-
     def load_pretrained(self, path: str):
         self.load_state_dict(torch.load(path, weights_only=True))
-        self._freeze()
+        self.requires_grad_(False)
 
 # ========================================================================================================
 #                                             Loss Functions
