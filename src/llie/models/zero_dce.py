@@ -13,9 +13,7 @@ from src.llie.utils.config import get_optimizer, get_scheduler
 from src.llie.models.utils import save_batch_tensor
 
 
-# ========================================================================================================
-#                                             Loss functions
-# ========================================================================================================
+# region Loss Functions
 
 class SpatialConsistencyLoss(nn.Module):
     def __init__(self):
@@ -110,9 +108,9 @@ class IlluminationSmoothnessLoss(nn.Module):
         w_loss = torch.sum(w_diff) / w_count
         return 2 * self.weight * (h_loss + w_loss) / b
 
-# ========================================================================================================
-#                                               Main Model
-# ========================================================================================================
+# endregion
+
+# region Main Model
 
 class DCENet(nn.Module):
     def __init__(self, in_channels: int = 3, base_channels: int = 32, n_iterations: int = 8):
@@ -307,3 +305,5 @@ class ZeroDCE(pl.LightningModule):
         enhanced_image = self.forward(batch["low"])
         enhanced_image = torch.clip(enhanced_image.detach().cpu() * 255, 0, 255).to(torch.uint8)
         save_batch_tensor(enhanced_image, self.save_path, batch)
+
+# endregion

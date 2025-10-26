@@ -15,9 +15,7 @@ from src.llie.utils.config import get_optimizer, get_scheduler
 from src.llie.models.utils import pad_tensor, pad_tensor_back, save_batch_tensor
 
 
-# ========================================================================================================
-#                                              Submodules
-# ========================================================================================================
+# region Submodules
 
 class CRB(nn.Module):
     """
@@ -228,9 +226,9 @@ class VGG16(nn.Module):
         self.load_state_dict(torch.load(path, weights_only=True))
         self.requires_grad_(False)
 
-# ========================================================================================================
-#                                             Loss Functions
-# ========================================================================================================
+# endregion
+
+# region Loss Functions
 
 class PerceptualLoss(nn.Module):
     def __init__(self, num_features: int = 512):
@@ -276,9 +274,9 @@ class GANLoss(nn.Module):
             target_tensor = self.fake_label_var
         return F.mse_loss(x, target_tensor)
 
-# ========================================================================================================
-#                                               Main Model
-# ========================================================================================================
+# endregion
+
+# region Main Model
 
 class EnlightenGAN(pl.LightningModule):
     def __init__(self, config, logger: "loguru.Logger"):
@@ -526,3 +524,4 @@ class EnlightenGAN(pl.LightningModule):
         fake_b = torch.clip(fake_b * 255, 0, 255).to(torch.uint8)
         save_batch_tensor(fake_b, self.save_path, batch)
 
+# endregion

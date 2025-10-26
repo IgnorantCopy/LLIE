@@ -25,9 +25,10 @@ train:
 data:
   name: Unpaired
   root: /home/nju-student/mkh/datasets/LLIE/Test
-  batch_size: 4
+  batch_size: 16
   num_workers: 4
   pin_memory: True
   height: 512
   width: 512
+  crop_size: 128
   seed: 42

@@ -25,10 +25,11 @@ train:
 data:
   name: SICE
   root: /home/nju-student/mkh/datasets/LLIE/SICE/Dataset
-  batch_size: 4
+  batch_size: 16
   num_workers: 4
   pin_memory: True
   height: 300
   width: 450
+  crop_size: 128
   val_ratio: 0.2
   seed: 42

@@ -25,10 +25,11 @@ train:
 data:
   name: LOLv2_Synthetic
   root: /home/nju-student/mkh/datasets/LLIE/LOLv2/Synthetic
-  batch_size: 4
+  batch_size: 16
   num_workers: 4
   pin_memory: True
   height: 384
   width: 384
+  crop_size: 128
   val_ratio: 0.2
   seed: 42

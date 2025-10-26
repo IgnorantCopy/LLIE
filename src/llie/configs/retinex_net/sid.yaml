@@ -25,9 +25,10 @@ train:
 data:
   name: SID
   root: /home/nju-student/mkh/datasets/LLIE/Sony_total_dark
-  batch_size: 4
+  batch_size: 16
   num_workers: 4
   pin_memory: True
   height: 400
   width: 600
+  crop_size: 128
   seed: 42

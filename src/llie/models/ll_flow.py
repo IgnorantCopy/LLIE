@@ -18,9 +18,7 @@ from src.llie.utils.config import get_optimizer, get_scheduler
 from src.llie.models.utils import save_batch_tensor
 
 
-# ========================================================================================================
-#                                          Conditional Encoder
-# ========================================================================================================
+# region Conditonal Encoder
 
 class ResidualDenseBlock(nn.Module):
     def __init__(self, in_channels: int = 64, base_channels: int = 32, num_layers: int = 5, bias: bool = True):
@@ -122,9 +120,9 @@ class ConditionalEncoder(nn.Module):
         else:
             return results
 
-# ========================================================================================================
-#                                             Flow Network
-# ========================================================================================================
+# endregion
+
+# region Flow Network
 
 class SqueezeLayer(nn.Module):
     def __init__(self, factor: int = 2):
@@ -497,9 +495,9 @@ class FlowUpsamplerNet(nn.Module):
                 z, logdet = layer(z, logdet, reverse, rrdb_results, epses_copy)
         return z, logdet
 
-# ========================================================================================================
-#                                               Main Model
-# ========================================================================================================
+# endregion
+
+# region Main Model
 
 class GaussianDiag(object):
     @staticmethod
@@ -732,3 +730,5 @@ class LLFlow(pl.LightningModule):
         fake_hr = fake_hr.detach().cpu()
         fake_hr = torch.clip(fake_hr * 255, 0, 255).to(torch.uint8)
         save_batch_tensor(fake_hr, self.save_path, batch)
+
+# endregion

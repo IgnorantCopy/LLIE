@@ -15,9 +15,7 @@ from src.llie.utils.config import get_optimizer, get_scheduler
 from src.llie.models.utils import gradient, save_batch_tensor
 
 
-# ========================================================================================================
-#                                     Layer Decomposition Network
-# ========================================================================================================
+# region Layer Decomposition Network
 
 class DecomNet(nn.Module):
     def __init__(self, in_channels: int, base_channels: int = 32):
@@ -37,7 +35,7 @@ class DecomNet(nn.Module):
         self.lrelu = nn.LeakyReLU(0.2)
 
         self.conv6 = nn.Conv2d(base_channels, base_channels, kernel_size=3, padding=1)
-        self.out_conv2 = nn.Conv2d(base_channels, 1, kernel_size=1)
+        self.out_conv2 = nn.Conv2d(base_channels * 2, 1, kernel_size=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x1 = self.lrelu(self.conv1(x))
@@ -52,9 +50,9 @@ class DecomNet(nn.Module):
 
         return r_out, i_out
 
-# ========================================================================================================
-#                                   Reflectance Restoration Network
-# ========================================================================================================
+# endregion
+
+# region Reflectance Restoration Network
 
 class MultiScaleModule(nn.Module):
     def __init__(self, base_channels: int):
@@ -146,9 +144,9 @@ class RestorationNet(nn.Module):
         out = self.out_conv(features)
         return out
 
-# ========================================================================================================
-#                                   Illumination Adjustment Network
-# ========================================================================================================
+# endregion
+
+# region Illumination Adjustment Network
 
 class AdjustmentNet(nn.Module):
     def __init__(self, alpha: float, base_channels: int = 32):
@@ -156,7 +154,7 @@ class AdjustmentNet(nn.Module):
 
         self.alpha = alpha
         self.layers = nn.Sequential(
-            nn.Conv2d(1, base_channels, kernel_size=3, padding=1),
+            nn.Conv2d(2, base_channels, kernel_size=3, padding=1),
             nn.LeakyReLU(0.2),
             nn.Conv2d(base_channels, base_channels, kernel_size=3, padding=1),
             nn.LeakyReLU(0.2),
@@ -173,9 +171,9 @@ class AdjustmentNet(nn.Module):
         illumination = self.layers(illumination)
         return illumination
 
-# ========================================================================================================
-#                                             Loss Functions
-# ========================================================================================================
+# endregion
+
+# region Loss Functions
 
 class DecomLoss(nn.Module):
     def __init__(self, lambda_re: float, lambda_rs: float, lambda_mc: float, lambda_is: float):
@@ -227,12 +225,13 @@ class DecomLoss(nn.Module):
 
         return (x_loss + y_loss).mean()
 
-    def forward(self, x: torch.Tensor, r_low: torch.Tensor, r_high: torch.Tensor, i_low: torch.Tensor, i_high: torch.Tensor):
+    def forward(self, low: torch.Tensor, high: torch.Tensor, r_low: torch.Tensor, r_high: torch.Tensor,
+                i_low: torch.Tensor, i_high: torch.Tensor):
         return (
-            self.lambda_re * (self.recon_loss(x, r_low, i_low) + self.recon_loss(x, r_high, i_high)) +
+            self.lambda_re * (self.recon_loss(low, r_low, i_low) + self.recon_loss(high, r_high, i_high)) +
             self.lambda_rs * self.reflectance_similarity(r_low, r_high) +
-            self.lambda_mc * (self.mutual_consistency(i_low, i_high)) +
-            self.lambda_is * (self.illumination_smoothness(x, i_low) + self.illumination_smoothness(x, i_high))
+            self.lambda_mc * self.mutual_consistency(i_low, i_high) +
+            self.lambda_is * (self.illumination_smoothness(low, i_low) + self.illumination_smoothness(high, i_high))
         )
 
 
@@ -276,9 +275,9 @@ class AdjustmentLoss(nn.Module):
         mse_loss = self.mse(i_low, i_high)
         return grad_loss + mse_loss
 
-# ========================================================================================================
-#                                               Main Model
-# ========================================================================================================
+# endregion
+
+# region Main Model
 
 class KinDPlus(pl.LightningModule):
     def __init__(self, config, logger: "loguru.Logger"):
@@ -330,9 +329,9 @@ class KinDPlus(pl.LightningModule):
 
     def get_high_pred(self):
         rgb_to_gray = Grayscale(num_output_channels=1)
-        gaussion_blur = GaussianBlur(kernel_size=11, sigma=3.0)
+        gaussian_blur = GaussianBlur(kernel_size=11, sigma=3.0)
         r_gray = rgb_to_gray(self.r_low_restoration)
-        r_blur = gaussion_blur(r_gray)
+        r_blur = gaussian_blur(r_gray)
         i_low = torch.clip((r_blur * 2) ** 0.5, min=1, max=None)
         r_denoised = self.r_low_restoration * i_low
         high_pred = r_denoised * self.i_low_adjustment
@@ -344,12 +343,15 @@ class KinDPlus(pl.LightningModule):
         restoration_optimizer = get_optimizer(train_config, self.restoration_net, self.extra_logger)
         adjustment_optimizer = get_optimizer(train_config, self.adjustment_net, self.extra_logger)
 
+        decom_scheduler = get_scheduler(train_config, decom_optimizer, self.extra_logger)
         restoration_scheduler = get_scheduler(train_config, restoration_optimizer, self.extra_logger)
+        adjustment_scheduler = get_scheduler(train_config, adjustment_optimizer, self.extra_logger)
 
-        return [decom_optimizer, restoration_optimizer, adjustment_optimizer], [restoration_scheduler]
+        return ([decom_optimizer, restoration_optimizer, adjustment_optimizer],
+                [decom_scheduler, restoration_scheduler, adjustment_scheduler])
 
-    def _compute_loss(self, low: torch.Tensor):
-        self.decom_loss_val = self.decom_loss(low, self.r_low_deom, self.r_high, self.i_low_decom, self.i_high)
+    def _compute_loss(self, low: torch.Tensor, high: torch.Tensor):
+        self.decom_loss_val = self.decom_loss(low, high, self.r_low_decom, self.r_high, self.i_low_decom, self.i_high)
         if not self.training or self.current_epoch > self.decom_epochs:
             self.restoration_loss_val = self.restoration_loss(self.r_low_restoration, self.r_high)
         if not self.training or self.current_epoch > self.decom_epochs + self.restoration_epochs:
@@ -368,7 +370,7 @@ class KinDPlus(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         low, high = batch["low"], batch["high"]
         self.forward(low, high)
-        self._compute_loss(low)
+        self._compute_loss(low, high)
 
         decom_optimizer, restoration_optimizer, adjustment_optimizer = self.optimizers()
         if self.current_epoch <= self.decom_epochs:
@@ -393,27 +395,65 @@ class KinDPlus(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         low, high = batch["low"], batch["high"]
         self.forward(low, high)
-        self._compute_loss(low)
+        self._compute_loss(low, high)
 
         if self.current_epoch <= self.decom_epochs:
             self.log("val/decom_loss", self.decom_loss_val, on_step=False, on_epoch=True, batch_size=low.shape[0])
+            if batch_idx == 0:
+                r_low_decom = self.r_low_decom[0].detach().cpu()
+                i_low_decom = self.i_low_decom[0].detach().cpu()
+                r_high_decom = self.r_high[0].detach().cpu()
+                i_high_decom = self.i_high[0].detach().cpu()
+                image1 = torch.cat([r_low_decom, r_high_decom], dim=2)
+                image2 = torch.cat([i_low_decom, i_high_decom], dim=2)
+                image2 = image2.repeat(3, 1, 1)
+                image = torch.cat([image1, image2], dim=1)
+                image = torch.clip(image * 255, 0, 255).to(torch.uint8)
+                self.logger.experiment.add_image("val/decomposition", image, self.current_epoch)
         elif self.current_epoch <= self.decom_epochs + self.restoration_epochs:
             self.log("val/restoration_loss", self.restoration_loss_val, on_step=False, on_epoch=True, batch_size=low.shape[0])
+            if batch_idx == 0:
+                r_low_restoration = self.r_low_restoration[0].detach().cpu()
+                r_high_restoration = self.r_high[0].detach().cpu()
+                image = torch.cat([r_low_restoration, r_high_restoration], dim=2)
+                image = torch.clip(image * 255, 0, 255).to(torch.uint8)
+                self.logger.experiment.add_image("val/restoration", image, self.current_epoch)
         else:
-            self.log("val/adjustment_loss", self.adjustment_loss_val, on_step=False, on_epoch=True, batch_size=low.shape[0])
+            high_pred = self.get_high_pred()
+            self._compute_metrics(high_pred, high)
+            self.log_dict({
+                "val/adjustment_loss": self.adjustment_loss_val,
+                "val/psnr": self.psnr_val,
+                "val/ssim": self.ssim_val,
+                "val/niqe": self.niqe_val,
+            }, on_step=False, on_epoch=True, batch_size=low.shape[0])
             if batch_idx == 0:
                 low = low[0].detach().cpu()
                 high = high[0].detach().cpu()
-                high_pred = self.get_high_pred()[0].detach().cpu()
-                image = torch.cat([low, high_pred, high], dim=2)
-                image = torch.clip(image * 255, 0, 255).to(torch.uint8)
-                self.logger.experiment.add_image("val/image", image, self.current_epoch)
+                high_pred = high_pred[0].detach().cpu()
+                image1 = torch.cat([low, high_pred, high], dim=2)
+                image1 = torch.clip(image1 * 255, 0, 255).to(torch.uint8)
+
+                i_low_adjustment = self.i_low_adjustment[0].detach().cpu()
+                i_high_adjustment = self.i_high[0].detach().cpu()
+                image2 = torch.cat([i_low_adjustment, i_high_adjustment], dim=2)
+                image2 = image2.repeat(3, 1, 1)
+                image2 = torch.clip(image2 * 255, 0, 255).to(torch.uint8)
+
+                self.logger.experiment.add_image("val/image", image1, self.current_epoch)
+                self.logger.experiment.add_image("val/adjustment", image2, self.current_epoch)
 
     def on_validation_epoch_end(self):
-        scheduler = self.lr_schedulers()
-        if self.decom_epochs < self.current_epoch <= self.decom_epochs + self.restoration_epochs:
-            scheduler.step()
-            self.log("lr/restoration_scheduler", scheduler.get_last_lr()[0], on_step=False, on_epoch=True)
+        decom_scheduler, restoration_scheduler, adjustment_scheduler = self.lr_schedulers()
+        if self.current_epoch <= self.decom_epochs:
+            decom_scheduler.step()
+            self.log("lr/decom_lr", decom_scheduler.get_last_lr()[0], on_step=False, on_epoch=True)
+        elif self.current_epoch <= self.decom_epochs + self.restoration_epochs:
+            restoration_scheduler.step()
+            self.log("lr/restoration_lr", restoration_scheduler.get_last_lr()[0], on_step=False, on_epoch=True)
+        else:
+            adjustment_scheduler.step()
+            self.log("lr/adjustment_lr", adjustment_scheduler.get_last_lr()[0], on_step=False, on_epoch=True)
 
         if self.current_epoch == self.decom_epochs:
             self.decom_net.requires_grad_(False)
@@ -434,7 +474,7 @@ class KinDPlus(pl.LightningModule):
         low, high = batch["low"], batch["high"]
         self.forward(low, high)
         high_pred = self.get_high_pred()
-        self._compute_loss(low)
+        self._compute_loss(low, high)
         self._compute_metrics(high_pred, high)
 
         self.log_dict({
@@ -466,3 +506,5 @@ class KinDPlus(pl.LightningModule):
         high_pred = self.get_high_pred()
         high_pred = torch.clip(high_pred * 255, 0, 255).to(torch.uint8)
         save_batch_tensor(high_pred, self.save_path, batch)
+
+# endregion

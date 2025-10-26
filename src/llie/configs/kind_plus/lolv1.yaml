@@ -22,17 +22,18 @@ train:
   scheduler:
     name: MultiStepLR
     gamma: 0.5
-    milestones: [300, 500, 1500]
+    milestones: [500, 1000, 1500]
   log_dir: ./logs/kind_plus/lolv1
 
 
 data:
   name: LOLv1
   root: /home/nju-student/mkh/datasets/LLIE/LOLv1
-  batch_size: 4
+  batch_size: 8
   num_workers: 4
   pin_memory: True
   height: 400
   width: 600
+  crop_size: 128
   val_ratio: 0.2
   seed: 42

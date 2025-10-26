@@ -93,14 +93,6 @@ class FlowDataModule(DataModuleFromConfig):
     def __init__(self, father_datamodule: DataModuleFromConfig):
         super().__init__(father_datamodule.data_config)
         self.father_datamodule = father_datamodule
-        crop_size = self.father_datamodule.data_config["crop_size"]
-        self.father_datamodule.train_transform = Compose([
-            ToTensor(),
-            Resize((int(self.image_height), int(self.image_width))),
-            RandomCrop(crop_size),
-            RandomHorizontalFlip(),
-            RandomVerticalFlip(),
-        ])
 
     def setup(self, stage=None):
         self.father_datamodule.setup(stage)

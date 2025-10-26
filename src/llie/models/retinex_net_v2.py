@@ -14,9 +14,7 @@ from src.llie.utils.config import get_optimizer, get_scheduler
 from src.llie.models.utils import save_batch_tensor
 
 
-# ========================================================================================================
-#                              Sparse Gradient Minimization Network (SGMN)
-# ========================================================================================================
+# region Sparse Gradient Minimization Network (SGMN)
 
 class BasicBlock(nn.Module):
     def __init__(self, in_channels: int = 1, mid_channels: int = 8):
@@ -60,10 +58,9 @@ class SGMN(nn.Module):
             output.append(x)
         return output
 
+# endregion
 
-# ========================================================================================================
-#                               Multi-Scale Residual Dense Network (MSRDN)
-# ========================================================================================================
+# region Multi-Scale Residual Dense Network (MSRDN)
 
 class DBCR(nn.Module):
     """
@@ -191,10 +188,9 @@ class MSRDN(nn.Module):
 
         return self.up_net(x)
 
+# endregion
 
-# ========================================================================================================
-#                                             RetinexNetV2
-# ========================================================================================================
+# region Main Model
 
 class RetinexNetV2(pl.LightningModule):
     def __init__(self, config, logger: "loguru.Logger"):
@@ -473,3 +469,5 @@ class RetinexNetV2(pl.LightningModule):
         self.forward(low)
         high_pred = torch.clip(self.high_pred.detach().cpu() * 255, 0, 255).to(torch.uint8)
         save_batch_tensor(high_pred, self.save_path, batch)
+
+# endregion

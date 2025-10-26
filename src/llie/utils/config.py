@@ -49,6 +49,9 @@ def get_model(config, logger: "loguru.Logger") -> pl.LightningModule:
     elif name == "KinDPlus":
         from src.llie.models.kind_plus import KinDPlus
         model = KinDPlus(config, logger)
+    elif name == "SNR":
+        from src.llie.models.snr import SNR
+        model = SNR(config, logger)
     else:
         logger.error(f"Invalid model name: {name}")
         raise ValueError(f"Invalid model name: {name}")

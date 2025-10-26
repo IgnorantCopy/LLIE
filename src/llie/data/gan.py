@@ -1,5 +1,5 @@
 from torch.utils.data import Dataset
-from torchvision import transforms
+from torchvision.transforms import Grayscale
 
 from src.llie.data.utils import DataModuleFromConfig, Normalize, Compose
 
@@ -15,8 +15,8 @@ class GANDataset(Dataset):
     def __getitem__(self, index):
         res = self.father_dataset[index]
         low = res["low"]
-        r, g, b = (low[0] + 1) / 2, (low[1] + 1) / 2, (low[2] + 1) / 2
-        attn_map = 1. - (0.299 * r + 0.587 * g + 0.114 * b).unsqueeze(0)
+        rgb_to_gray = Grayscale(num_output_channels=1)
+        attn_map = 1. - rgb_to_gray((low + 1) / 2).unsqueeze(0)
         res["attn_map"] = attn_map
         return res
 

@@ -80,7 +80,8 @@ class Compose(object):
 
     def __call__(self, *images):
         for t in self.transforms:
-            images = t(*images)
+            if t is not None:
+                images = t(*images)
         return images
 
 
@@ -92,6 +93,7 @@ class DataModuleFromConfig(pl.LightningDataModule):
         self.batch_size = data_config["batch_size"]
         self.image_height = data_config["height"]
         self.image_width = data_config["width"]
+        self.crop_size = data_config.get("crop_size", None)
         self.num_workers = data_config.get("num_workers", 4)
         self.pin_memory = data_config.get("pin_memory", True)
 
@@ -101,6 +103,7 @@ class DataModuleFromConfig(pl.LightningDataModule):
         self.train_transform = Compose([
             ToTensor(),
             Resize((int(self.image_height), int(self.image_width))),
+            RandomCrop(self.crop_size) if self.crop_size is not None else None,
             RandomHorizontalFlip(),
             RandomVerticalFlip(),
         ])

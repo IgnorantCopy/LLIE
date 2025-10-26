@@ -25,10 +25,11 @@ train:
 data:
   name: LOLBlur
   root: /home/nju-student/mkh/datasets/LLIE/LOLBlur
-  batch_size: 4
+  batch_size: 16
   num_workers: 4
   pin_memory: True
   height: 400
   width: 700
+  crop_size: 128
   val_ratio: 0.2
   seed: 42
