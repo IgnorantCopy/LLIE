@@ -1,0 +1,35 @@
+model:
+  name: LEDNet
+  in_channels: 3
+  base_channels: 32
+  connection: false
+  lambda_perceptual: 0.001
+  lambda_encoder: 0.8
+  lambda_deblur: 1.0
+
+
+train:
+  epochs: 10000
+  lr: 0.0001
+  optimizer:
+    name: Adam
+    weight_decay: 0.0
+    betas: [0.9, 0.99]
+  scheduler:
+    name: CosineAnnealingWarmRestarts
+    T_0: 10000
+    eta_min: 0.0000001
+  log_dir: ./logs/led_net/lol_blur
+
+
+data:
+  name: LOLBlur
+  root: /home/nju-student/mkh/datasets/LLIE/LOLBlur
+  batch_size: 16
+  num_workers: 4
+  pin_memory: True
+  height: 400
+  width: 704
+  crop_size: 256
+  val_ratio: 0.2
+  seed: 42

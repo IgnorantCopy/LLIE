@@ -52,6 +52,9 @@ def get_model(config, logger: "loguru.Logger") -> pl.LightningModule:
     elif name == "SNR":
         from src.llie.models.snr import SNR
         model = SNR(config, logger)
+    elif name == "LEDNet":
+        from src.llie.models.led_net import LEDNet
+        model = LEDNet(config, logger)
     else:
         logger.error(f"Invalid model name: {name}")
         raise ValueError(f"Invalid model name: {name}")
@@ -103,6 +106,10 @@ def get_scheduler(train_config, optimizer: optim.Optimizer, logger: "loguru.Logg
         gamma = scheduler_config.get("gamma", 0.5)
         warmup_steps = scheduler_config.get("warmup_steps", 400)
         scheduler = MultiStepLRWarmup(optimizer, milestones=milestones, gamma=gamma, warmup_epochs=warmup_steps)
+    elif scheduler_name == "CosineAnnealingWarmRestarts":
+        T_0 = scheduler_config.get("T_0", 100)
+        eta_min = scheduler_config.get("eta_min", 1e-6)
+        scheduler = lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=T_0, eta_min=eta_min)
     else:
         logger.error(f"Unsupported scheduler: {scheduler_name}")
         raise ValueError(f"Unsupported scheduler: {scheduler_name}")
