@@ -1,14 +1,12 @@
-from __future__ import annotations
-
 import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import lightning as pl
-import loguru
 from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
 from torchmetrics.regression import MeanAbsoluteError
 
+from src.llie.utils.logger import default_logger as extra_logger
 from src.llie.utils.config import get_optimizer, get_scheduler
 from src.llie.models.utils import save_batch_tensor
 
@@ -168,12 +166,12 @@ class DCENet(nn.Module):
             return x, x_r
         return x
 
-# ========================================================================================================
-#                                           Lightning Module
-# ========================================================================================================
+# end region
+
+# region Lightning Module
 
 class ZeroDCEPlus(pl.LightningModule):
-    def __init__(self, config, logger: "loguru.Logger"):
+    def __init__(self, config):
         super().__init__()
 
         self.config = config
@@ -182,7 +180,6 @@ class ZeroDCEPlus(pl.LightningModule):
         self.base_channels = model_config.get('base_channels', 32)
         self.n_iterations = model_config.get('n_iterations', 8)
         self.dce_net = DCENet(in_channels=self.in_channels, base_channels=self.base_channels, n_iterations=self.n_iterations)
-        self.extra_logger = logger
 
         self.save_path = config["data"].get("save_path", "")
         if self.save_path:
@@ -208,8 +205,8 @@ class ZeroDCEPlus(pl.LightningModule):
 
     def configure_optimizers(self):
         train_config = self.config["train"]
-        optimizer = get_optimizer(train_config, self.dce_net, self.extra_logger)
-        scheduler = get_scheduler(train_config, optimizer, self.extra_logger)
+        optimizer = get_optimizer(train_config, self.dce_net, extra_logger)
+        scheduler = get_scheduler(train_config, optimizer, extra_logger)
         lr_scheduler_config = {
             "scheduler": scheduler,
             "interval": "epoch",
@@ -236,8 +233,8 @@ class ZeroDCEPlus(pl.LightningModule):
         self.mae_val = self.mae(high, low)
 
     def on_train_epoch_start(self):
-        self.extra_logger.info(f"Epoch {self.current_epoch} starts.")
-        self.extra_logger.info(f"Start training stage.")
+        extra_logger.info(f"Epoch {self.current_epoch} starts.")
+        extra_logger.info(f"Start training stage.")
 
     def training_step(self, batch, batch_idx):
         image = batch["low"]
@@ -253,7 +250,7 @@ class ZeroDCEPlus(pl.LightningModule):
         return loss
 
     def on_validation_epoch_start(self):
-        self.extra_logger.info(f"Start validation stage.")
+        extra_logger.info(f"Start validation stage.")
 
     def validation_step(self, batch, batch_idx):
         image = batch["low"]
@@ -281,10 +278,10 @@ class ZeroDCEPlus(pl.LightningModule):
         self.log("lr", scheduler.get_last_lr()[0], on_step=False, on_epoch=True)
 
     def on_fit_start(self):
-        self.extra_logger.info(f"Start training on {self.device}.")
+        extra_logger.info(f"Start training on {self.device}.")
 
     def on_fit_end(self):
-        self.extra_logger.info(f"Training finished.")
+        extra_logger.info(f"Training finished.")
 
     def test_step(self, batch, batch_idx):
         image = batch["low"]
@@ -308,10 +305,10 @@ class ZeroDCEPlus(pl.LightningModule):
         return loss
 
     def on_test_start(self):
-        self.extra_logger.info("Start testing.")
+        extra_logger.info("Start testing.")
 
     def on_test_end(self):
-        self.extra_logger.info(f"Testing finished.")
+        extra_logger.info(f"Testing finished.")
 
     def predict_step(self, batch, batch_idx):
         enhanced_image = self.forward(batch["low"])

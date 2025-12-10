@@ -1,0 +1,6 @@
+test:
+  name: LOLv2_Real
+  root: /home/nju-student/mkh/datasets/LLIE/LOLv2/Real_captured
+  save_path: /home/nju-student/mkh/codes/LLIE/results/lolv2_real
+  height: 400
+  width: 600

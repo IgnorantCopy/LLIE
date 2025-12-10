@@ -1,16 +1,14 @@
-from __future__ import annotations
-
 import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 import lightning as pl
-import loguru
 import random
 import pyiqa
 from typing import Optional
 
+from src.llie.utils.logger import default_logger as extra_logger
 from src.llie.utils.config import get_optimizer, get_scheduler
 from src.llie.models.utils import pad_tensor, pad_tensor_back, save_batch_tensor
 
@@ -279,7 +277,7 @@ class GANLoss(nn.Module):
 # region Main Model
 
 class EnlightenGAN(pl.LightningModule):
-    def __init__(self, config, logger: "loguru.Logger"):
+    def __init__(self, config):
         super().__init__()
 
         self.config = config
@@ -290,7 +288,6 @@ class EnlightenGAN(pl.LightningModule):
         self.vgg = VGG16(self.model_config["vgg"])
         self.vgg.load_pretrained(self.model_config["vgg_pretrained_path"])
         self.start_decay_epoch = self.model_config["start_decay_epoch"]
-        self.extra_logger = logger
         self.automatic_optimization = False
 
         self.save_path = config["data"].get("save_path", "")
@@ -324,12 +321,12 @@ class EnlightenGAN(pl.LightningModule):
 
     def configure_optimizers(self):
         train_config = self.config["train"]
-        optimizerGA = get_optimizer(train_config, self.generatorA, self.extra_logger)
-        optimizerDA = get_optimizer(train_config, self.discriminatorA, self.extra_logger)
-        optimizerDP = get_optimizer(train_config, self.discriminatorP, self.extra_logger)
-        schedulerGA = get_scheduler(train_config, optimizerGA, self.extra_logger)
-        schedulerDA = get_scheduler(train_config, optimizerDA, self.extra_logger)
-        schedulerDP = get_scheduler(train_config, optimizerDP, self.extra_logger)
+        optimizerGA = get_optimizer(train_config, self.generatorA)
+        optimizerDA = get_optimizer(train_config, self.discriminatorA)
+        optimizerDP = get_optimizer(train_config, self.discriminatorP)
+        schedulerGA = get_scheduler(train_config, optimizerGA)
+        schedulerDA = get_scheduler(train_config, optimizerDA)
+        schedulerDP = get_scheduler(train_config, optimizerDP)
         return [optimizerGA, optimizerDA, optimizerDP], [schedulerGA, schedulerDA, schedulerDP]
 
     def _compute_loss_generator(self, real_a: Variable, real_b: Variable):
@@ -371,8 +368,8 @@ class EnlightenGAN(pl.LightningModule):
         self.niqe_score = self.niqe(fake_b).mean()
 
     def on_train_epoch_start(self):
-        self.extra_logger.info(f"Epoch {self.current_epoch} starts.")
-        self.extra_logger.info(f"Start training stage.")
+        extra_logger.info(f"Epoch {self.current_epoch} starts.")
+        extra_logger.info(f"Start training stage.")
 
     def training_step(self, batch, batch_idx):
         img_a, img_b, attn_map = batch["low"], batch["high"], batch["attn_map"]
@@ -413,7 +410,7 @@ class EnlightenGAN(pl.LightningModule):
         }, on_step=True, on_epoch=True, batch_size=real_a.shape[0])
 
     def on_validation_epoch_start(self):
-        self.extra_logger.info(f"Start validation stage.")
+        extra_logger.info(f"Start validation stage.")
 
     def validation_step(self, batch, batch_idx):
         img_a, img_b, attn_map = batch["low"], batch["high"], batch["attn_map"]
@@ -464,10 +461,10 @@ class EnlightenGAN(pl.LightningModule):
         }, on_step=False, on_epoch=True)
 
     def on_fit_start(self):
-        self.extra_logger.info(f"Start training on {self.device}.")
+        extra_logger.info(f"Start training on {self.device}.")
 
     def on_fit_end(self):
-        self.extra_logger.info(f"Training finished.")
+        extra_logger.info(f"Training finished.")
 
     def test_step(self, batch, batch_idx):
         img_a, img_b, attn_map = batch["low"], batch["high"], batch["attn_map"]
@@ -504,10 +501,10 @@ class EnlightenGAN(pl.LightningModule):
             self.logger.experiment.add_image("test/image", image, self.current_epoch)
 
     def on_test_start(self):
-        self.extra_logger.info("Start testing.")
+        extra_logger.info("Start testing.")
 
     def on_test_end(self):
-        self.extra_logger.info(f"Testing finished.")
+        extra_logger.info(f"Testing finished.")
 
     def predict_step(self, batch, batch_idx):
         img_a, attn_map = batch["low"], batch["attn_map"]
@@ -517,7 +514,7 @@ class EnlightenGAN(pl.LightningModule):
 
         self.forward(real_a, None, attn_map, real_image)
         self._compute_metrics()
-        self.extra_logger.info(f"NIQE score: {self.niqe_score}")
+        extra_logger.info(f"NIQE score: {self.niqe_score}")
 
         # save results
         fake_b = (self.fake_b.detach().cpu() + 1) / 2

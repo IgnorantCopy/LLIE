@@ -1,0 +1,4 @@
+test:
+  name: LOLv1
+  root: /home/nju-student/mkh/datasets/LLIE/LOLv1
+  save_path: /home/nju-student/mkh/codes/LLIE/results/lolv1

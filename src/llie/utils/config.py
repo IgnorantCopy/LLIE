@@ -1,11 +1,10 @@
-from __future__ import annotations
-
 import yaml
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
 import lightning as pl
-import loguru
+
+from src.llie.utils.logger import default_logger as logger
 
 
 def load_config(config_file):
@@ -24,37 +23,40 @@ def override_config(src_config, dst_config):
         dst_config[key] = value
 
 
-def get_model(config, logger: "loguru.Logger") -> pl.LightningModule:
+def get_model(config) -> pl.LightningModule:
     name = config["model"]["name"]
 
     logger.info(f"Loading model: {name}")
     if name == "RetinexNet":
         from src.llie.models.retinex_net import RetinexNet
-        model = RetinexNet(config, logger)
+        model = RetinexNet(config)
     elif name == "RetinexNetV2":
         from src.llie.models.retinex_net_v2 import RetinexNetV2
-        model = RetinexNetV2(config, logger)
+        model = RetinexNetV2(config)
     elif name == "EnlightenGAN":
         from src.llie.models.enlighten_gan import EnlightenGAN
-        model = EnlightenGAN(config, logger)
+        model = EnlightenGAN(config)
     elif name == "ZeroDCE":
         from src.llie.models.zero_dce import ZeroDCE
-        model = ZeroDCE(config, logger)
+        model = ZeroDCE(config)
     elif name == "ZeroDCEPlus":
         from src.llie.models.zero_dce_plus import ZeroDCEPlus
-        model = ZeroDCEPlus(config, logger)
+        model = ZeroDCEPlus(config)
     elif name == "LLFlow":
         from src.llie.models.ll_flow import LLFlow
-        model = LLFlow(config, logger)
+        model = LLFlow(config)
     elif name == "KinDPlus":
         from src.llie.models.kind_plus import KinDPlus
-        model = KinDPlus(config, logger)
+        model = KinDPlus(config)
     elif name == "SNR":
         from src.llie.models.snr import SNR
-        model = SNR(config, logger)
+        model = SNR(config)
     elif name == "LEDNet":
         from src.llie.models.led_net import LEDNet
-        model = LEDNet(config, logger)
+        model = LEDNet(config)
+    elif name == "RetinexFormer":
+        from src.llie.models.retinex_former import RetinexFormer
+        model = RetinexFormer(config)
     else:
         logger.error(f"Invalid model name: {name}")
         raise ValueError(f"Invalid model name: {name}")
@@ -63,7 +65,7 @@ def get_model(config, logger: "loguru.Logger") -> pl.LightningModule:
     return model
 
 
-def get_optimizer(train_config, model: nn.Module, logger: "loguru.Logger") -> optim.Optimizer:
+def get_optimizer(train_config, model: nn.Module) -> optim.Optimizer:
     optimizer_config = train_config["optimizer"]
     optimizer_name = optimizer_config["name"]
     lr = train_config["lr"]
@@ -86,7 +88,7 @@ def get_optimizer(train_config, model: nn.Module, logger: "loguru.Logger") -> op
     return optimizer
 
 
-def get_scheduler(train_config, optimizer: optim.Optimizer, logger: "loguru.Logger"):
+def get_scheduler(train_config, optimizer: optim.Optimizer):
     scheduler_config = train_config["scheduler"]
     scheduler_name = scheduler_config["name"]
 
@@ -110,6 +112,12 @@ def get_scheduler(train_config, optimizer: optim.Optimizer, logger: "loguru.Logg
         T_0 = scheduler_config.get("T_0", 100)
         eta_min = scheduler_config.get("eta_min", 1e-6)
         scheduler = lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=T_0, eta_min=eta_min)
+    elif scheduler_name == "CosineAnnealingRestartCyclicLR":
+        from src.llie.utils.scheduler import CosineAnnealingRestartCyclicLR
+        periods = scheduler_config.get("periods", [100])
+        restart_weights = scheduler_config.get("restart_weights", [1])
+        eta_mins = scheduler_config.get("eta_mins", [1e-6])
+        scheduler = CosineAnnealingRestartCyclicLR(optimizer, periods=periods, restart_weights=restart_weights, eta_mins=eta_mins)
     else:
         logger.error(f"Unsupported scheduler: {scheduler_name}")
         raise ValueError(f"Unsupported scheduler: {scheduler_name}")
@@ -118,7 +126,7 @@ def get_scheduler(train_config, optimizer: optim.Optimizer, logger: "loguru.Logg
     return scheduler
 
 
-def get_datamodule(data_config, logger: "loguru.Logger"):
+def get_datamodule(data_config):
     name = data_config["name"]
 
     logger.info(f"Loading dataset: {name}")

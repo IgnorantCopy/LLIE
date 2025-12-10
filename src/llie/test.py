@@ -5,7 +5,7 @@ import lightning as pl
 from lightning.pytorch import loggers
 
 from src.llie.utils.config import load_config, override_config, get_model, get_datamodule
-from src.llie.utils.logger import get_logger
+from src.llie.utils import logger as log
 
 
 def parse_args():
@@ -34,11 +34,11 @@ def main():
     log_dir = os.path.join(os.path.dirname(ckpt), "../../../..", datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
     os.makedirs(log_dir, exist_ok=True)
     logger = loggers.TensorBoardLogger(save_dir=log_dir)
-    extra_logger = get_logger(os.path.join(log_dir, "test.log"))
+    log.default_logger = log.get_logger(os.path.join(log_dir, "test.log"))
 
-    model = get_model(config, extra_logger)
-    model = model.__class__.load_from_checkpoint(ckpt, config=config, logger=extra_logger)
-    datamodule = get_datamodule(data_config, extra_logger)
+    model = get_model(config)
+    model = model.__class__.load_from_checkpoint(ckpt, config=config)
+    datamodule = get_datamodule(data_config)
     datamodule.setup("test")
 
     trainer = pl.Trainer(accelerator=device, devices="auto", logger=logger, default_root_dir=log_dir)

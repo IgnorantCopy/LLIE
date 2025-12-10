@@ -5,7 +5,7 @@ import lightning as pl
 from lightning.pytorch import loggers
 
 from src.llie.utils.config import load_config, save_config, get_model, get_datamodule
-from src.llie.utils.logger import get_logger
+import src.llie.utils.logger as log
 
 
 def parse_args():
@@ -34,10 +34,10 @@ def main():
     os.makedirs(log_dir, exist_ok=True)
     save_config(config, os.path.join(log_dir, "config.yaml"))
     logger = loggers.TensorBoardLogger(save_dir=log_dir)
-    extra_logger = get_logger(os.path.join(log_dir, "train.log"))
+    log.default_logger = log.get_logger(os.path.join(log_dir, "train.log"))
 
-    model = get_model(config, extra_logger)
-    datamodule = get_datamodule(data_config, extra_logger)
+    model = get_model(config)
+    datamodule = get_datamodule(data_config)
 
     trainer = pl.Trainer(max_epochs=train_config["epochs"], accelerator=device, devices="auto",
                          gradient_clip_val=train_config.get("grad_clip", 0),

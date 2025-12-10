@@ -2,7 +2,6 @@ import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import List
 from PIL import Image
 
 
@@ -59,4 +58,4 @@ def save_batch_tensor(tensor: torch.Tensor, path: str, batch: dict):
     height, width = batch["height"], batch["width"]
     for i in range(tensor.shape[0]):
         save_path = os.path.join(path, os.path.basename(low_path[i]))
-        Image.fromarray(tensor[i].permute(1, 2, 0).numpy()).resize((height[i], width[i]), Image.Resampling.BICUBIC).save(save_path)
+        Image.fromarray(tensor[i].permute(1, 2, 0).numpy()).resize((width[i], height[i]), Image.Resampling.BICUBIC).save(save_path)

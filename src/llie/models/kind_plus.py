@@ -1,16 +1,14 @@
-from __future__ import annotations
-
 import os
 import torch
 import torch.nn as nn
 from torchvision.transforms import Grayscale, GaussianBlur
 import lightning as pl
-import loguru
 import pyiqa
 from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
 from typing import Optional
 
 from src.llie.metrics.ssim import SSIM
+from src.llie.utils.logger import default_logger as extra_logger
 from src.llie.utils.config import get_optimizer, get_scheduler
 from src.llie.models.utils import gradient, save_batch_tensor
 
@@ -196,7 +194,7 @@ class DecomLoss(nn.Module):
 
     @staticmethod
     def reflectance_similarity(r_low: torch.Tensor, r_high: torch.Tensor) -> torch.Tensor:
-        return torch.abs(r_low - r_high).mean()
+        return torch.abs(r_low - r_high.detach()).mean() + torch.abs(r_low.detach() - r_high).mean()
 
     def mutual_consistency(self, i_low: torch.Tensor, i_high: torch.Tensor) -> torch.Tensor:
         grad_low_x = self.grad_norm(i_low, "x")
@@ -280,7 +278,7 @@ class AdjustmentLoss(nn.Module):
 # region Main Model
 
 class KinDPlus(pl.LightningModule):
-    def __init__(self, config, logger: "loguru.Logger"):
+    def __init__(self, config):
         super().__init__()
 
         self.config = config
@@ -295,7 +293,6 @@ class KinDPlus(pl.LightningModule):
         self.decom_epochs = model_config["decom_epochs"]
         self.restoration_epochs = model_config["restoration_epochs"]
         self.adjustment_epochs = model_config["adjustment_epochs"]
-        self.extra_logger = logger
         self.automatic_optimization = False
 
         self.save_path = config["data"].get("save_path", "")
@@ -339,13 +336,13 @@ class KinDPlus(pl.LightningModule):
 
     def configure_optimizers(self):
         train_config = self.config["train"]
-        decom_optimizer = get_optimizer(train_config, self.decom_net, self.extra_logger)
-        restoration_optimizer = get_optimizer(train_config, self.restoration_net, self.extra_logger)
-        adjustment_optimizer = get_optimizer(train_config, self.adjustment_net, self.extra_logger)
+        decom_optimizer = get_optimizer(train_config, self.decom_net)
+        restoration_optimizer = get_optimizer(train_config, self.restoration_net)
+        adjustment_optimizer = get_optimizer(train_config, self.adjustment_net)
 
-        decom_scheduler = get_scheduler(train_config, decom_optimizer, self.extra_logger)
-        restoration_scheduler = get_scheduler(train_config, restoration_optimizer, self.extra_logger)
-        adjustment_scheduler = get_scheduler(train_config, adjustment_optimizer, self.extra_logger)
+        decom_scheduler = get_scheduler(train_config, decom_optimizer)
+        restoration_scheduler = get_scheduler(train_config, restoration_optimizer)
+        adjustment_scheduler = get_scheduler(train_config, adjustment_optimizer)
 
         return ([decom_optimizer, restoration_optimizer, adjustment_optimizer],
                 [decom_scheduler, restoration_scheduler, adjustment_scheduler])
@@ -364,8 +361,8 @@ class KinDPlus(pl.LightningModule):
         self.niqe_val = self.niqe(high_pred).mean()
 
     def on_train_epoch_start(self):
-        self.extra_logger.info(f"Epoch {self.current_epoch} starts.")
-        self.extra_logger.info(f"Start training stage.")
+        extra_logger.info(f"Epoch {self.current_epoch} starts.")
+        extra_logger.info(f"Start training stage.")
 
     def training_step(self, batch, batch_idx):
         low, high = batch["low"], batch["high"]
@@ -390,7 +387,7 @@ class KinDPlus(pl.LightningModule):
             self.log("train/adjustment_loss", self.adjustment_loss_val, on_step=True, on_epoch=True, batch_size=low.shape[0])
 
     def on_validation_epoch_start(self):
-        self.extra_logger.info(f"Start validation stage.")
+        extra_logger.info(f"Start validation stage.")
 
     def validation_step(self, batch, batch_idx):
         low, high = batch["low"], batch["high"]
@@ -458,17 +455,17 @@ class KinDPlus(pl.LightningModule):
         if self.current_epoch == self.decom_epochs:
             self.decom_net.requires_grad_(False)
             self.restoration_net.requires_grad_(True)
-            self.extra_logger.info(f"DecomNet training finished, start training RestorationNet.")
+            extra_logger.info(f"DecomNet training finished, start training RestorationNet.")
         elif self.current_epoch == self.decom_epochs + self.restoration_epochs:
             self.restoration_net.requires_grad_(False)
             self.adjustment_net.requires_grad_(True)
-            self.extra_logger.info(f"RestorationNet training finished, start training AdjustmentNet.")
+            extra_logger.info(f"RestorationNet training finished, start training AdjustmentNet.")
 
     def on_fit_start(self):
-        self.extra_logger.info(f"Start training on {self.device}.")
+        extra_logger.info(f"Start training on {self.device}.")
 
     def on_fit_end(self):
-        self.extra_logger.info(f"All training finished.")
+        extra_logger.info(f"All training finished.")
 
     def test_step(self, batch, batch_idx):
         low, high = batch["low"], batch["high"]
@@ -495,10 +492,10 @@ class KinDPlus(pl.LightningModule):
             self.logger.experiment.add_image("test/image", image, self.current_epoch)
 
     def on_test_start(self):
-        self.extra_logger.info("Start testing.")
+        extra_logger.info("Start testing.")
 
     def on_test_end(self):
-        self.extra_logger.info(f"Testing finished.")
+        extra_logger.info(f"Testing finished.")
 
     def predict_step(self, batch, batch_idx):
         low = batch["low"]

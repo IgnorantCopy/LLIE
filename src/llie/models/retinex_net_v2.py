@@ -1,15 +1,13 @@
-from __future__ import annotations
-
 import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import lightning as pl
-import loguru
 from torchmetrics.image import StructuralSimilarityIndexMeasure, PeakSignalNoiseRatio, UniversalImageQualityIndex
 from typing import Tuple, List, Optional
 
 from src.llie.metrics.ssim import SSIM
+from src.llie.utils.logger import default_logger as extra_logger
 from src.llie.utils.config import get_optimizer, get_scheduler
 from src.llie.models.utils import save_batch_tensor
 
@@ -193,7 +191,7 @@ class MSRDN(nn.Module):
 # region Main Model
 
 class RetinexNetV2(pl.LightningModule):
-    def __init__(self, config, logger: "loguru.Logger"):
+    def __init__(self, config):
         super().__init__()
 
         self.config = config
@@ -218,7 +216,6 @@ class RetinexNetV2(pl.LightningModule):
 
         self.ssim = SSIM(window_size=11)
         self.l1_loss = nn.L1Loss()
-        self.extra_logger = logger
         self.automatic_optimization = False
 
         # metrics
@@ -325,18 +322,18 @@ class RetinexNetV2(pl.LightningModule):
 
     def configure_optimizers(self):
         train_config = self.config['train']
-        decom_optimizer = get_optimizer(train_config, self.decom_net, self.extra_logger)
-        enhance_optimizer = get_optimizer(train_config, self.enhance_net, self.extra_logger)
-        restore_optimizer = get_optimizer(train_config, self.restore_net, self.extra_logger)
-        decom_scheduler = get_scheduler(train_config, decom_optimizer, self.extra_logger)
-        enhance_scheduler = get_scheduler(train_config, enhance_optimizer, self.extra_logger)
-        restore_scheduler = get_scheduler(train_config, restore_optimizer, self.extra_logger)
+        decom_optimizer = get_optimizer(train_config, self.decom_net)
+        enhance_optimizer = get_optimizer(train_config, self.enhance_net)
+        restore_optimizer = get_optimizer(train_config, self.restore_net)
+        decom_scheduler = get_scheduler(train_config, decom_optimizer)
+        enhance_scheduler = get_scheduler(train_config, enhance_optimizer)
+        restore_scheduler = get_scheduler(train_config, restore_optimizer)
 
         return [decom_optimizer, enhance_optimizer, restore_optimizer], [decom_scheduler, enhance_scheduler, restore_scheduler]
 
     def on_train_epoch_start(self):
-        self.extra_logger.info(f"Epoch {self.current_epoch} starts.")
-        self.extra_logger.info(f"Start training stage.")
+        extra_logger.info(f"Epoch {self.current_epoch} starts.")
+        extra_logger.info(f"Start training stage.")
 
     def training_step(self, batch, batch_idx):
         high, low = batch["high"], batch["low"]
@@ -369,7 +366,7 @@ class RetinexNetV2(pl.LightningModule):
         return self.total_loss
 
     def on_validation_epoch_start(self):
-        self.extra_logger.info(f"Start validation stage.")
+        extra_logger.info(f"Start validation stage.")
 
     def validation_step(self, batch, batch_idx):
         high, low = batch["high"], batch["low"]
@@ -415,14 +412,14 @@ class RetinexNetV2(pl.LightningModule):
         self.log("lr", enhance_scheduler.get_last_lr()[0])
 
         if self.current_epoch + 1 == self.decom_epochs:
-            self.extra_logger.info(f"DecomNet training finished.")
+            extra_logger.info(f"DecomNet training finished.")
             self.decom_net.requires_grad_(False)
 
     def on_fit_start(self):
-        self.extra_logger.info(f"Start training on {self.device}.")
+        extra_logger.info(f"Start training on {self.device}.")
 
     def on_fit_end(self):
-        self.extra_logger.info(f"Training finished.")
+        extra_logger.info(f"Training finished.")
 
     def test_step(self, batch, batch_idx):
         high, low = batch["high"], batch["low"]
@@ -459,10 +456,10 @@ class RetinexNetV2(pl.LightningModule):
         return self.total_loss
 
     def on_test_start(self):
-        self.extra_logger.info("Start testing.")
+        extra_logger.info("Start testing.")
 
     def on_test_end(self):
-        self.extra_logger.info(f"Testing finished.")
+        extra_logger.info(f"Testing finished.")
 
     def predict_step(self, batch, batch_idx):
         low = batch["low"]

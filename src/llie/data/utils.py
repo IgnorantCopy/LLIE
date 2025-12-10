@@ -85,6 +85,20 @@ class Compose(object):
         return images
 
 
+class MixUp(object):
+    def __init__(self, beta):
+        self.dist = torch.distributions.beta.Beta(torch.tensor([beta]), torch.tensor([beta]))
+
+    def __call__(self, x, target):
+        lam = self.dist.rsample((1, 1)).item()
+        r_index = torch.randperm(x.size(0))
+
+        target = lam * target + (1 - lam) * target[r_index]
+        x = lam * x + (1 - lam) * x[r_index]
+
+        return x, target
+
+
 class DataModuleFromConfig(pl.LightningDataModule):
     def __init__(self, data_config):
         super().__init__()

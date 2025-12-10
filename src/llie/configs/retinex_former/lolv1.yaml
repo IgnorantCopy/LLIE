@@ -1,0 +1,37 @@
+model:
+  name: RetinexFormer
+  in_channels: 3
+  out_channels: 3
+  dim: 40
+  stage: 1
+  level: 2
+  num_blocks: [ 1, 2, 2 ]
+
+
+train:
+  epochs: 2400
+  lr: 0.0002
+  grad_clip: 0.01
+  optimizer:
+    name: Adam
+    weight_decay: 0.0005
+  scheduler:
+    name: CosineAnnealingRestartCyclicLR
+    periods: [ 700, 2400 ]
+    restart_weights: [ 1.0, 1.0 ]
+    eta_mins: [ 0.0003, 0.000001]
+  log_dir: ./logs/retinex_former/lolv1
+
+
+data:
+  name: LOLv1
+  root: /home/nju-student/mkh/datasets/LLIE/LOLv1
+  batch_size: 8
+  num_workers: 4
+  pin_memory: True
+  height: 400
+  width: 600
+  crop_size: 128
+  val_ratio: 0.2
+  seed: 42
+  mix_beta: 1.2

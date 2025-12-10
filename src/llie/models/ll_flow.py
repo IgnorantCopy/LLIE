@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import os
 import numpy as np
 import torch
@@ -9,11 +7,11 @@ from torch.amp import GradScaler
 from torchvision.transforms import Grayscale
 from einops import rearrange
 import lightning as pl
-import loguru
 import random
 from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure, LearnedPerceptualImagePatchSimilarity
 from typing import Optional, Union, List, Tuple
 
+from src.llie.utils.logger import default_logger as extra_logger
 from src.llie.utils.config import get_optimizer, get_scheduler
 from src.llie.models.utils import save_batch_tensor
 
@@ -521,7 +519,7 @@ class GaussianDiag(object):
 
 
 class LLFlow(pl.LightningModule):
-    def __init__(self, config, logger: "loguru.Logger"):
+    def __init__(self, config):
         super().__init__()
 
         self.config = config
@@ -546,7 +544,6 @@ class LLFlow(pl.LightningModule):
             actnorm_scale=flow_upsampler_config["actnorm_scale"],
         )
         self.scaler = GradScaler()
-        self.extra_logger = logger
         self.automatic_optimization = False
 
         self.save_path = config["data"].get("save_path", "")
@@ -631,8 +628,8 @@ class LLFlow(pl.LightningModule):
 
     def configure_optimizers(self):
         train_config = self.config["train"]
-        optimizer = get_optimizer(train_config, self, self.extra_logger)
-        scheduler = get_scheduler(train_config, optimizer, self.extra_logger)
+        optimizer = get_optimizer(train_config, self)
+        scheduler = get_scheduler(train_config, optimizer)
         return [optimizer], [scheduler]
 
     def _compute_metrics(self, fake_hr: torch.Tensor, gt: torch.Tensor):
@@ -643,8 +640,8 @@ class LLFlow(pl.LightningModule):
         self.lpips_score = self.lpips(gt * 2 - 1, fake_hr * 2 - 1)
 
     def on_train_epoch_start(self):
-        self.extra_logger.info(f"Epoch {self.current_epoch} starts.")
-        self.extra_logger.info(f"Start training stage.")
+        extra_logger.info(f"Epoch {self.current_epoch} starts.")
+        extra_logger.info(f"Start training stage.")
 
     def training_step(self, batch, batch_idx):
         lr, gt = batch["low"], batch["high"]
@@ -664,7 +661,7 @@ class LLFlow(pl.LightningModule):
         return nll_loss
 
     def on_validation_epoch_start(self):
-        self.extra_logger.info(f"Start validation stage.")
+        extra_logger.info(f"Start validation stage.")
 
     def validation_step(self, batch, batch_idx):
         lr, gt = batch["low"], batch["high"]
@@ -688,10 +685,10 @@ class LLFlow(pl.LightningModule):
             self.logger.experiment.add_image("val/images", image, self.current_epoch)
 
     def on_fit_start(self):
-        self.extra_logger.info(f"Start training on {self.device}.")
+        extra_logger.info(f"Start training on {self.device}.")
 
     def on_fit_end(self):
-        self.extra_logger.info(f"Training finished.")
+        extra_logger.info(f"Training finished.")
 
     def test_step(self, batch, batch_idx):
         lr, gt = batch["low"], batch["high"]
@@ -715,17 +712,17 @@ class LLFlow(pl.LightningModule):
             self.logger.experiment.add_image("test/images", image, self.current_epoch)
 
     def on_test_start(self):
-        self.extra_logger.info("Start testing.")
+        extra_logger.info("Start testing.")
 
     def on_test_end(self):
-        self.extra_logger.info(f"Testing finished.")
+        extra_logger.info(f"Testing finished.")
 
     def predict_step(self, batch, batch_idx):
         lr, gt = batch["low"], batch["high"]
         fake_hr, _ = self.forward(lr, reverse=True)
         fake_hr = self.finetune_brightness(fake_hr, gt)
         self._compute_metrics(fake_hr, gt)
-        self.extra_logger.info(f"PSNR: {self.psnr_score:.2f}, SSIM: {self.ssim_score:.4f}, LPIPS: {self.lpips_score:.4f}")
+        extra_logger.info(f"PSNR: {self.psnr_score:.2f}, SSIM: {self.ssim_score:.4f}, LPIPS: {self.lpips_score:.4f}")
 
         fake_hr = fake_hr.detach().cpu()
         fake_hr = torch.clip(fake_hr * 255, 0, 255).to(torch.uint8)

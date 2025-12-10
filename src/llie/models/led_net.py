@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import os
 import numpy as np
 import torch
@@ -7,11 +5,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 import lightning as pl
-import loguru
 from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure, LearnedPerceptualImagePatchSimilarity
 from typing import Optional, List
 
 from src.llie.utils.loss import PerceptualLoss
+from src.llie.utils.logger import default_logger as extra_logger
 from src.llie.utils.config import get_optimizer, get_scheduler
 from src.llie.models.utils import save_batch_tensor
 
@@ -410,7 +408,7 @@ class LEDNetModel(nn.Module):
 
 
 class LEDNet(pl.LightningModule):
-    def __init__(self, config, logger: "loguru.Logger"):
+    def __init__(self, config):
         super().__init__()
 
         self.config = config
@@ -420,7 +418,6 @@ class LEDNet(pl.LightningModule):
             base_channels=model_config["base_channels"],
             connection=model_config["connection"],
         )
-        self.extra_logger = logger
 
         self.save_path = config["data"].get("save_path", "")
         if self.save_path:
@@ -442,8 +439,8 @@ class LEDNet(pl.LightningModule):
 
     def configure_optimizers(self):
         train_config = self.config["train"]
-        optimizer = get_optimizer(train_config, self.model, self.extra_logger)
-        scheduler = get_scheduler(train_config, optimizer, self.extra_logger)
+        optimizer = get_optimizer(train_config, self.model)
+        scheduler = get_scheduler(train_config, optimizer)
         return [optimizer], [scheduler]
 
     def _compute_loss(self, x8: torch.Tensor, y8: torch.Tensor, x: torch.Tensor, y: torch.Tensor):
@@ -458,8 +455,8 @@ class LEDNet(pl.LightningModule):
         self.lpips_val = self.lpips(x, y)
 
     def on_train_epoch_start(self):
-        self.extra_logger.info(f"Epoch {self.current_epoch} starts.")
-        self.extra_logger.info(f"Start training stage.")
+        extra_logger.info(f"Epoch {self.current_epoch} starts.")
+        extra_logger.info(f"Start training stage.")
 
     def training_step(self, batch, batch_idx):
         low, high = batch["low"], batch["high"]
@@ -473,7 +470,7 @@ class LEDNet(pl.LightningModule):
         return loss
 
     def on_validation_epoch_start(self):
-        self.extra_logger.info(f"Start validation stage.")
+        extra_logger.info(f"Start validation stage.")
 
     def validation_step(self, batch, batch_idx):
         low, high = batch["low"], batch["high"]
@@ -506,10 +503,10 @@ class LEDNet(pl.LightningModule):
         self.log("lr", scheduler.get_last_lr()[0], on_step=False, on_epoch=True)
 
     def on_fit_start(self):
-        self.extra_logger.info(f"Start training on {self.device}.")
+        extra_logger.info(f"Start training on {self.device}.")
 
     def on_fit_end(self):
-        self.extra_logger.info(f"All training finished.")
+        extra_logger.info(f"All training finished.")
 
     def test_step(self, batch, batch_idx):
         low, high = batch["low"], batch["high"]
@@ -530,10 +527,10 @@ class LEDNet(pl.LightningModule):
             self.logger.experiment.add_image(f"test/image", image, self.current_epoch)
 
     def on_test_start(self):
-        self.extra_logger.info("Start testing.")
+        extra_logger.info("Start testing.")
 
     def on_test_end(self):
-        self.extra_logger.info(f"Testing finished.")
+        extra_logger.info(f"Testing finished.")
 
     def predict_step(self, batch, batch_idx):
         low = batch["low"]
