@@ -3,6 +3,8 @@ import os
 import datetime
 import lightning as pl
 from lightning.pytorch import loggers
+from lightning.pytorch.callbacks import WeightAveraging
+from torch.optim.swa_utils import get_ema_avg_fn
 
 from src.llie.utils.config import load_config, save_config, get_model, get_datamodule
 import src.llie.utils.logger as log
@@ -39,9 +41,12 @@ def main():
     model = get_model(config)
     datamodule = get_datamodule(data_config)
 
-    trainer = pl.Trainer(max_epochs=train_config["epochs"], accelerator=device, devices="auto",
-                         gradient_clip_val=train_config.get("grad_clip", 0),
-                         logger=logger, default_root_dir=log_dir)
+    trainer = pl.Trainer(
+        max_epochs=train_config["epochs"], accelerator=device, devices="auto",
+        gradient_clip_val=train_config.get("grad_clip", 0),
+        logger=logger, default_root_dir=log_dir,
+        callbacks=WeightAveraging(avg_fn=get_ema_avg_fn(train_config.get("ema_decay", 0.999))) if train_config.get("use_ema", False) else None
+    )
     trainer.fit(model=model, datamodule=datamodule, ckpt_path=resume)
     trainer.test(model=model, datamodule=datamodule)
 

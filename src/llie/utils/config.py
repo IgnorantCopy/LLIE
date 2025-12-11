@@ -57,6 +57,9 @@ def get_model(config) -> pl.LightningModule:
     elif name == "RetinexFormer":
         from src.llie.models.retinex_former import RetinexFormer
         model = RetinexFormer(config)
+    elif name == "DiffLL":
+        from src.llie.models.diff_ll import DiffLL
+        model = DiffLL(config)
     else:
         logger.error(f"Invalid model name: {name}")
         raise ValueError(f"Invalid model name: {name}")
@@ -98,6 +101,10 @@ def get_scheduler(train_config, optimizer: optim.Optimizer):
         patience = scheduler_config.get("patience", 10)
         min_lr = scheduler_config.get("min_lr", 1e-6)
         scheduler =  lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=factor, patience=patience, min_lr=min_lr)
+    if scheduler_name == "StepLR":
+        step_size = scheduler_config["step_size"]
+        gamma = scheduler_config.get("gamma", 0.5)
+        scheduler = lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
     elif scheduler_name == "MultiStepLR":
         milestones = scheduler_config["milestones"]
         gamma = scheduler_config.get("gamma", 0.5)

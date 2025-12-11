@@ -219,6 +219,7 @@ src/test/KinD_plus/
 src/test/SNR-Aware-Low-Light-Enhance/
 src/test/LEDNet/
 src/test/Retinexformer/
+src/test/Diffusion-Low-Light/
 src/test/hw/
 src/test/PIRM2018/
 src/llie/logs/

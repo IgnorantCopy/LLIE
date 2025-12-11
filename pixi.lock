@@ -215,7 +215,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/libxkbcommon-1.11.0-he8b52b9_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/libxml2-2.13.8-h04c0eec_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/libzlib-1.3.1-hb9d3cd8_2.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/lightning-2.5.5-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/lightning-2.6.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/lightning-utilities-0.15.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/llvm-openmp-21.1.0-h4922eb0_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/loguru-0.7.3-pyh707e725_0.conda
@@ -640,7 +640,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/libxkbcommon-1.11.0-he8b52b9_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/libxml2-2.13.8-h04c0eec_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/libzlib-1.3.1-hb9d3cd8_2.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/lightning-2.5.5-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/lightning-2.6.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/lightning-utilities-0.15.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/llvm-openmp-21.1.0-h4922eb0_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/loguru-0.7.3-pyh707e725_0.conda
@@ -1077,7 +1077,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/libxkbcommon-1.11.0-he8b52b9_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/libxml2-2.13.8-h04c0eec_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/libzlib-1.3.1-hb9d3cd8_2.conda
-      - conda: https://conda.anaconda.org/conda-forge/noarch/lightning-2.5.5-pyhd8ed1ab_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/noarch/lightning-2.6.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/lightning-utilities-0.15.2-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/llvm-openmp-21.1.0-h4922eb0_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/loguru-0.7.3-pyh707e725_0.conda
@@ -5751,9 +5751,9 @@ packages:
   purls: []
   size: 60963
   timestamp: 1727963148474
-- conda: https://conda.anaconda.org/conda-forge/noarch/lightning-2.5.5-pyhd8ed1ab_0.conda
-  sha256: 1a71ae1c0d311428d6de6ee093273d0f4f3c7bc71774889260183ed6845eae0f
-  md5: 116bf97ba0c4c85ff5f2753826f275b0
+- conda: https://conda.anaconda.org/conda-forge/noarch/lightning-2.6.0-pyhcf101f3_0.conda
+  sha256: 99f627e4107e4ab420a4980e205b51870f2b1b7a932054c52d283ef8ee6936f3
+  md5: 3d2e22bd23de085307af08cad77d7bae
   depends:
   - fsspec <2027.0,>=2022.5.0
   - lightning-utilities <2.0,>=0.10.0
@@ -5764,13 +5764,15 @@ packages:
   - pyyaml <8.0,>5.4
   - torchmetrics <3.0,>0.7.0
   - tqdm <6.0,>=4.57.0
-  - typing-extensions <6.0,>=4.4.0
   - typing_extensions <6.0,>4.5.0
+  - typing-extensions <6.0,>=4.4.0
+  - python
   license: Apache-2.0
+  license_family: APACHE
   purls:
   - pkg:pypi/lightning?source=hash-mapping
-  size: 458680
-  timestamp: 1757141774074
+  size: 497321
+  timestamp: 1764675067062
 - conda: https://conda.anaconda.org/conda-forge/noarch/lightning-utilities-0.15.2-pyhd8ed1ab_0.conda
   sha256: 90a59d0478b94a9c1bb8e30f65f4383d275256d91ff53b6d42b24d39205cfba2
   md5: 4784423620116256b7ca344db44d7ab1
@@ -5788,7 +5790,7 @@ packages:
 - pypi: ./
   name: llie
   version: 0.1.0
-  sha256: 27cdbe9b6fb0c2819c0f07803c1091a1ea029543a5553bc8a7f9e455dcd40a15
+  sha256: 9cfa0b646671078f08a1e018e23c06d22a1813d7232f6d11d6b443cda1e63de0
   requires_dist:
   - bm3d>=4.0.3,<5
   - pyiqa>=0.1.14.1,<0.2
