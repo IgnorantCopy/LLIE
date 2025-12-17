@@ -1,7 +1,7 @@
 model:
   name: DiffLL
-  diffusion_steps: 200
-  sampling_steps: 10
+  diffusion_timesteps: 200
+  sampling_timesteps: 10
   beta_schedule: linear
   beta_start: 0.0001
   beta_end: 0.02
@@ -30,7 +30,6 @@ train:
 
 data:
   name: LOLv1
-  flow: True
   root: /home/nju-student/mkh/datasets/LLIE/LOLv1
   batch_size: 8
   num_workers: 4

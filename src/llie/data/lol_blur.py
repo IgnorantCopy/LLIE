@@ -19,7 +19,7 @@ class LOLBlurDataset(Dataset):
 
     def _load_data(self) -> Tuple[List[str], List[str]]:
         high_image_dirs = sorted(glob.glob(os.path.join(self.data_root, 'high_sharp_scaled', '*')))
-        low_image_dirs = sorted(glob.glob(os.path.join(self.data_root, 'low_blur', '*')))
+        low_image_dirs = sorted(glob.glob(os.path.join(self.data_root, 'low_blur_noise', '*')))
 
         high_image_paths = []
         low_image_paths = []

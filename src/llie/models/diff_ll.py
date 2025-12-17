@@ -40,7 +40,7 @@ class IDWT(nn.Module):
         super().__init__()
         self.requires_grad_(False)
 
-    def forword(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         b, c, h, w = x.shape
         out_b, out_c, out_h, out_w = b // 4, c, h * 2, w * 2
         x1 = x[:out_b, :, :, :] / 2
@@ -145,7 +145,7 @@ class AttentionBlock(nn.Module):
         attn = q @ k * scale
         attn = attn.softmax(dim=-1)
 
-        h = v @ attn.T
+        h = v @ attn.transpose(-1, -2)
         h = rearrange(h, "b c (h w) -> b c h w", h=x.shape[2])
         h = self.proj_out(h)
 
@@ -421,7 +421,7 @@ class Diffusion(nn.Module):
 
         self.enhance0 = HFRM(3, 64)
         self.enhance1 = HFRM(3, 64)
-        self.unet = UNet(in_channels, mid_channels, out_channels, channels_ratio, num_blocks, resample_with_conv, dropout)
+        self.unet = UNet(in_channels * 2, mid_channels, out_channels, channels_ratio, num_blocks, resample_with_conv, dropout)
 
         self.betas = self.get_beta_schedule()
         self.num_timesteps = self.betas.shape[0]
